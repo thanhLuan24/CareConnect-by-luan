@@ -1,0 +1,46 @@
+name: Deploy CareConnect to Google Cloud Run (Neon Postgres)
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+env:
+  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  REGION: asia-southeast1
+  SERVICE_NAME: careconnect-api
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: '${{ secrets.GCP_SA_KEY }}'
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Build and Deploy to Google Cloud Run
+        run: |
+          gcloud run deploy $SERVICE_NAME \
+            --source . \
+            --project $PROJECT_ID \
+            --region $REGION \
+            --platform managed \
+            --allow-unauthenticated \
+            --port 8080 \
+            --memory 512Mi \
+            --cpu 1 \
+            --min-instances 0 \
+            --max-instances 3 \
+            --set-env-vars "ASPNETCORE_ENVIRONMENT=Production,EnableSwagger=true,Gemini__Model=gemini-2.5-flash,DATABASE_URL=${{ secrets.NEON_DATABASE_URL }},Jwt__Key=${{ secrets.JWT_SECRET_KEY }},GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}"

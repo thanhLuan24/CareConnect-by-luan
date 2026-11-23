@@ -1,0 +1,45 @@
+## .NET Core / C#
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+*.user
+*.userprefs
+*.suo
+*.userosscache
+*.sln.docstates
+
+## Local SQLite Database
+*.db
+*.db-shm
+*.db-wal
+
+## Node / JavaScript
+node_modules/
+scratch_excel/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+## Flutter / Dart (Mobile Client)
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+build/
+mobile_client/build/
+mobile_client/.dart_tool/
+*.iml
+.idea/
+
+## Temporary & Backup
+*.bak
+*.tmp
+*.log
+
+## OS / Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.vs/
+*.swp

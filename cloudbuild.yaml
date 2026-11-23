@@ -1,0 +1,57 @@
+# =====================================================================
+# Google Cloud Build -> Artifact Registry -> Google Cloud Run
+# Cách chạy: gcloud builds submit --config cloudbuild.yaml
+# =====================================================================
+steps:
+  # 1. Build Docker Image
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO_NAME}/${_SERVICE_NAME}:$BUILD_ID'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO_NAME}/${_SERVICE_NAME}:latest'
+      - '.'
+
+  # 2. Push Image lên Google Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - '--all-tags'
+      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO_NAME}/${_SERVICE_NAME}'
+
+  # 3. Deploy lên Google Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - '${_SERVICE_NAME}'
+      - '--image'
+      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO_NAME}/${_SERVICE_NAME}:$BUILD_ID'
+      - '--region'
+      - '${_REGION}'
+      - '--platform'
+      - 'managed'
+      - '--allow-unauthenticated'
+      - '--port'
+      - '8080'
+      - '--memory'
+      - '512Mi'
+      - '--cpu'
+      - '1'
+      - '--min-instances'
+      - '0'
+      - '--max-instances'
+      - '3'
+      - '--set-env-vars'
+      - 'ASPNETCORE_ENVIRONMENT=Production,EnableSwagger=true,Gemini__Model=gemini-2.5-flash'
+
+substitutions:
+  _REGION: 'asia-southeast1' # Singapore (Độ trễ thấp nhất về Việt Nam)
+  _REPO_NAME: 'careconnect-repo'
+  _SERVICE_NAME: 'careconnect-api'
+
+images:
+  - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO_NAME}/${_SERVICE_NAME}:$BUILD_ID'
+  - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO_NAME}/${_SERVICE_NAME}:latest'

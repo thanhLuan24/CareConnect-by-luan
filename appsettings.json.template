@@ -1,0 +1,28 @@
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "AllowedHosts": "*",
+  "EnableSwagger": true,
+  "Cors": {
+    "AllowedOrigins": "https://your-cloud-run-service.a.run.app"
+  },
+  "ConnectionStrings": {
+    "DefaultConnection": "postgresql://neondb_owner:YOUR_PASSWORD@ep-xyz.ap-southeast-1.aws.neon.tech/neondb?sslmode=require"
+  },
+  "Jwt": {
+    "Key": "YOUR_STRONG_SECURE_JWT_SECRET_KEY_HERE_AT_LEAST_32_CHARACTERS",
+    "Issuer": "HospitalApiIssuer",
+    "Audience": "HospitalApiAudience"
+  },
+  "Gemini": {
+    "ApiKey": "YOUR_GEMINI_API_KEY_HERE",
+    "Model": "gemini-2.5-flash"
+  },
+  "Sentry": {
+    "Dsn": ""
+  }
+}
