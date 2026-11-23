@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: careconnect-api
+    runtime: docker
+    repo: https://github.com/thanhLuan24/CareConnect-by-luan
+    branch: main
+    region: singapore
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: PORT
+        value: 8080
+      - key: ASPNETCORE_HTTP_PORTS
+        value: 8080
+      - key: EnableSwagger
+        value: true
+      - key: Gemini__Model
+        value: gemini-2.5-flash
