@@ -1,0 +1,150 @@
+\chapter{MÔ TẢ KIẾN THỨC TỔNG QUAN ĐỀ TÀI}
+
+Chương 1 trình bày cơ sở lý thuyết nền tảng về điện toán đám mây, công nghệ ảo hóa vùng chứa, cơ sở dữ liệu quan hệ không máy chủ, các khung phát triển ứng dụng đa nền tảng, lý thuyết truy xuất thông tin kết hợp trí tuệ nhân tạo tạo sinh và khảo sát các công trình liên quan làm cơ sở cho việc thực hiện đề tài.
+
+\section{Tổng quan về bài toán quản lý khám chữa bệnh và chuyển đổi số y tế}
+
+\subsection{Đặc thù của quy trình khám chữa bệnh ngoại trú đa chuyên khoa}
+
+Quy trình khám chữa bệnh ngoại trú tại các phòng khám đa khoa và bệnh viện hiện đại là một chuỗi tác nghiệp liên hoàn giữa nhiều bộ phận chuyên môn khác nhau. Một chu trình khám bệnh tiêu chuẩn bắt đầu từ khâu bệnh nhân tìm hiểu thông tin triệu chứng, lựa chọn chuyên khoa và đặt lịch hẹn khám, tiếp nối bằng quy trình lễ tân tiếp đón, xác minh thông tin hành chính, phân loại đối tượng thanh toán dịch vụ hoặc Bảo hiểm y tế (BHYT) và đo các chỉ số sinh hiệu cơ bản gồm huyết áp, nhiệt độ, cân nặng, nhịp tim.
+
+Sau khi hoàn tất thủ tục tiếp đón, bác sĩ chuyên khoa thực hiện thăm khám lâm sàng, đưa ra chỉ định xét nghiệm cận lâm sàng hoặc chẩn đoán hình ảnh khi cần thiết, kết luận chẩn đoán và kê đơn thuốc điều trị. Cuối cùng, bộ phận tài chính kế toán thực hiện quyết toán viện phí, tính toán tỷ lệ đồng chi trả BHYT để bộ phận dược sĩ kiểm tra tồn kho và cấp phát thuốc cho bệnh nhân. Do tính chất liên kết chặt chẽ này, bất kỳ sự chậm trễ hoặc sai lệch dữ liệu nào ở một khâu đều ảnh hưởng trực tiếp đến toàn bộ trải nghiệm của người bệnh và hiệu suất vận hành của cơ sở y tế.
+
+\subsection{Những hạn chế của mô hình phần mềm y tế cục bộ truyền thống}
+
+Nhiều cơ sở y tế vừa và nhỏ hiện nay vẫn đang vận hành các phần mềm quản lý nội bộ cài đặt cố định trên máy chủ vật lý tại chỗ (On-Premises) hoặc sử dụng tệp cơ sở dữ liệu đơn lẻ. Mô hình truyền thống này bộc lộ bốn nhóm hạn chế lớn trong bối cảnh chuyển đổi số:
+\begin{itemize}
+    \item \textit{Thứ nhất, thiếu tính sẵn sàng và khả năng truy cập từ xa:} Bệnh nhân không thể đặt lịch hẹn trực tuyến, tra cứu lịch sử bệnh án hay theo dõi đơn thuốc mọi lúc mọi nơi qua thiết bị di động.
+    \item \textit{Thứ hai, thiếu công cụ sàng lọc và định hướng chuyên khoa ban đầu:} Người bệnh khi gặp các triệu chứng lâm sàng thường không biết phải đăng ký khám chuyên khoa nào (ví dụ nhầm lẫn giữa chuyên khoa Nội tổng quát, Tim mạch, Tiêu hóa hay Thần kinh), dẫn đến đặt sai bác sĩ và mất thời gian điều chuyển.
+    \item \textit{Thứ ba, rủi ro mất mát dữ liệu và hạn chế mở rộng:} Máy chủ cục bộ dễ gặp sự cố phần cứng, mất điện hoặc xung đột khóa ghi (Database Lock) khi số lượng kết nối đồng thời tăng cao vào giờ cao điểm buổi sáng.
+    \item \textit{Thứ tư, chi phí vận hành và bảo trì hạ tầng cao:} Cơ sở y tế phải duy trì đội ngũ kỹ thuật trực máy chủ, cấu hình mạng riêng ảo và tự sao lưu dữ liệu thủ công.
+\end{itemize}
+
+\section{Cơ sở lý thuyết về Điện toán đám mây và Kiến trúc không máy chủ}
+
+\subsection{Định nghĩa và các mô hình dịch vụ Điện toán đám mây}
+
+Theo Viện Tiêu chuẩn và Công nghệ Quốc gia Hoa Kỳ (NIST), Điện toán đám mây (Cloud Computing) là mô hình cho phép truy cập mạng thuận tiện, theo nhu cầu tới một tập hợp tài nguyên máy tính dùng chung có thể cấu hình được (như mạng, máy chủ, lưu trữ, ứng dụng và dịch vụ), có thể được cấp phát nhanh chóng và giải phóng với công sức quản trị tối thiểu \cite{mell2011nist}. Kiến trúc phân lớp các mô hình dịch vụ điện toán đám mây được thể hiện trong Hình~\ref{fig:cloud_models} và so sánh chi tiết tại Bảng~\ref{tab:cloud_service_models}.
+
+\begin{table}[H]
+\caption{So sánh ba mô hình dịch vụ Điện toán đám mây phổ biến (Nguồn: NIST \cite{mell2011nist})}
+\label{tab:cloud_service_models}
+\centering
+\begin{tabular}{|p{2.8cm}|p{5.5cm}|p{5.7cm}|}
+\hline
+\textbf{Mô hình dịch vụ} & \textbf{Thành phần người dùng quản lý} & \textbf{Thành phần nhà cung cấp quản lý} \\
+\hline
+Hạ tầng dưới dạng dịch vụ (IaaS) & Hệ điều hành, môi trường thực thi, cơ sở dữ liệu, mã nguồn ứng dụng & Máy chủ vật lý, lưu trữ đĩa cứng, thiết bị mạng, lớp ảo hóa \\
+\hline
+Nền tảng dưới dạng dịch vụ (PaaS) & Mã nguồn ứng dụng, cấu hình biến môi trường và lược đồ dữ liệu & Hệ điều hành, vùng chứa, cân bằng tải, chứng chỉ bảo mật, phần cứng \\
+\hline
+Phần mềm dưới dạng dịch vụ (SaaS) & Cấu hình tài khoản người dùng cuối và dữ liệu nghiệp vụ sử dụng & Toàn bộ phần cứng, hệ điều hành, cơ sở dữ liệu và phần mềm ứng dụng \\
+\hline
+\end{tabular}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    node distance=0.8cm,
+    box/.style={rectangle, draw=black, thick, minimum width=11cm, minimum height=1.1cm, align=center, font=\small}
+]
+    \node[box] (saas) {\textbf{Tầng Ứng dụng \& Giao diện (Application / SaaS)}\\Web SPA, Ứng dụng di động, Trợ lý ảo AI};
+    \node[box, below=of saas] (paas) {\textbf{Tầng Nền tảng Thực thi Đám mây (Platform as a Service - PaaS)}\\Môi trường chạy Vùng chứa Docker, Cân bằng tải, Tự động co giãn, CSDL Serverless};
+    \node[box, below=of paas] (iaas) {\textbf{Tầng Hạ tầng Ảo hóa \& Vật lý (Infrastructure as a Service - IaaS)}\\Máy chủ tính toán, Mạng trục đám mây, Lưu trữ phân tán};
+
+    \draw[-Stealth, thick] (saas.south) -- (paas.north);
+    \draw[-Stealth, thick] (paas.south) -- (iaas.north);
+\end{tikzpicture}
+\caption{Kiến trúc phân tầng các mô hình dịch vụ trong Điện toán đám mây}
+\label{fig:cloud_models}
+\end{figure}
+
+\subsection{Công nghệ ảo hóa vùng chứa Docker và kiến trúc không máy chủ}
+
+\subsubsection{Công nghệ đóng gói vùng chứa Docker}
+
+Khác với máy ảo truyền thống (Virtual Machine) phải ảo hóa toàn bộ phần cứng và chạy một nhân hệ điều hành (Guest OS) riêng biệt tiêu tốn nhiều bộ nhớ, công nghệ vùng chứa (Containerization) với đại diện tiêu biểu là Docker cho phép đóng gói mã nguồn ứng dụng cùng toàn bộ thư viện phụ thuộc vào một ảnh (Image) nhẹ, dùng chung nhân hệ điều hành Linux của máy chủ vật lý \cite{merkel2014docker}. Kỹ thuật đóng gói đa giai đoạn (Multi-stage Build) trong Docker giúp tách biệt môi trường biên dịch (chứa bộ công cụ phát triển phần mềm SDK) và môi trường thực thi (chỉ chứa thư viện chạy Runtime), từ đó giảm kích thước ảnh vùng chứa và hạn chế bề mặt tấn công bảo mật.
+
+\subsubsection{Kiến trúc tính toán và cơ sở dữ liệu không máy chủ (Serverless)}
+
+Kiến trúc không máy chủ (Serverless Architecture) là bước tiến hóa của mô hình PaaS, trong đó nhà cung cấp đám mây tự động cấp phát tài nguyên tính toán theo thời gian thực khi có yêu cầu (Request) và tự động thu hồi tài nguyên về mức không (Scale-to-Zero) khi hệ thống rảnh rỗi \cite{mell2011nist}. Đối với hệ quản trị cơ sở dữ liệu quan hệ PostgreSQL trên đám mây, kiến trúc Serverless hiện đại tách rời tầng tính toán truy vấn (Compute Node) và tầng lưu trữ trang dữ liệu bền vững (Distributed Storage) \cite{postgresql2024docs}. Sự tách biệt này cho phép cơ sở dữ liệu tự động mở rộng theo tải truy vấn, hỗ trợ phân nhánh dữ liệu tức thì và đảm bảo tính toàn vẹn giao dịch (ACID) mà không đòi hỏi duy trì máy chủ vật lý hoạt động liên tục với chi phí cố định cao.
+
+\section{Cơ sở lý thuyết về Khung phát triển ứng dụng và Bảo mật Web API}
+
+\subsection{Khung phát triển dịch vụ ASP.NET Core và ORM Entity Framework Core}
+
+ASP.NET Core là khung phát triển ứng dụng web và dịch vụ RESTful API mã nguồn mở, đa nền tảng hiệu năng cao do Microsoft phát triển \cite{microsoft2024aspnet}. Điểm mạnh cốt lõi của ASP.NET Core nằm ở kiến trúc đường ống phần mềm trung gian (Middleware Pipeline) xử lý tuần tự các yêu cầu HTTP qua máy chủ web Kestrel, hỗ trợ sẵn cơ chế Tiêm phụ thuộc (Dependency Injection - DI), nén luồng phản hồi và giới hạn tần suất truy cập (Rate Limiting).
+
+Để tương tác với cơ sở dữ liệu quan hệ, công nghệ Ánh xạ đối tượng - quan hệ (Object-Relational Mapping - ORM) thông qua Entity Framework Core (EF Core) cho phép biểu diễn các bảng dữ liệu dưới dạng các lớp đối tượng ngôn ngữ lập trình và viết truy vấn bằng cú pháp truy vấn tích hợp ngôn ngữ (LINQ) \cite{microsoft2024aspnet}. EF Core giúp trừu tượng hóa sự khác biệt giữa các hệ quản trị cơ sở dữ liệu như SQLite hay PostgreSQL, đồng thời bảo vệ hệ thống khỏi các cuộc tấn công chèn mã SQL (SQL Injection) nhờ cơ chế tham số hóa câu lệnh tự động.
+
+\subsection{Cơ chế xác thực phi trạng thái JSON Web Token và phân quyền RBAC}
+
+Trong kiến trúc đám mây phi trạng thái (Stateless Cloud Architecture), máy chủ không lưu trữ phiên làm việc (Session) của người dùng trong bộ nhớ cục bộ. Thay vào đó, tiêu chuẩn JSON Web Token (JWT - RFC 7519) được sử dụng để truyền tải thông tin định danh an toàn giữa máy khách và máy chủ dưới dạng một chuỗi ký tự gồm ba phần: Phần tiêu đề (Header), Phần dữ liệu định danh (Payload/Claims) và Phần chữ ký số (Signature) được ký bằng thuật toán băm mật mã HMAC-SHA256 \cite{jones2015jwt}.
+
+Khi kết hợp JWT với mô hình Kiểm soát truy cập dựa trên vai trò (Role-Based Access Control - RBAC), mỗi mã thông báo JWT sẽ mang theo thông tin vai trò của người dùng trong phần Payload. Phần mềm trung gian xác thực trên máy chủ sẽ kiểm tra chữ ký số, thời hạn hiệu lực của mã thông báo và đối chiếu quyền hạn trước khi cho phép truy cập vào từng điểm cuối API. Đối với ứng dụng khách đa nền tảng, khung phát triển Flutter sử dụng ngôn ngữ Dart cho phép biên dịch mã nguồn gốc (Native Compilation) ra cả thiết bị di động Android, iOS và trình duyệt Web, đồng thời lưu trữ chuỗi JWT an toàn trong vùng nhớ mã hóa phần cứng (Keystore/Keychain) của thiết bị \cite{google2024flutter}.
+
+\section{Cơ sở lý thuyết về Xử lý ngôn ngữ tự nhiên và Tạo sinh tăng cường truy xuất (RAG)}
+
+\subsection{Biểu diễn văn bản bằng trọng số TF-IDF và độ tương đồng Cosine}
+
+Trong lĩnh vực Truy xuất thông tin (Information Retrieval), để máy tính có thể đo lường mức độ liên quan giữa một câu hỏi của người dùng và một kho tài liệu văn bản, các văn bản cần được chuyển đổi thành các vector số học trong không gian nhiều chiều \cite{manning2008ir}. Phương pháp đánh trọng số Tần suất từ - Nghịch đảo tần suất văn bản (Term Frequency - Inverse Document Frequency, viết tắt là TF-IDF) xác định tầm quan trọng của một từ (hoặc cụm từ ghép đôi Bi-gram) $t$ trong văn bản $d$ thuộc tập hợp $N$ văn bản theo công thức (\ref{eq:tfidf_theory}):
+
+\begin{equation}
+\label{eq:tfidf_theory}
+w_{t,d} = \text{TF}(t, d) \times \text{IDF}(t) = \left( \frac{f_{t,d}}{\sum_{k \in d} f_{k,d}} \right) \times \left( \ln \left( \frac{1 + N}{1 + \text{df}_t} \right) + 1 \right)
+\end{equation}
+
+Trong đó, $f_{t,d}$ là số lần từ $t$ xuất hiện trong văn bản $d$, và $\text{df}_t$ là số lượng văn bản trong kho tri thức có chứa từ $t$. Sau khi xây dựng được vector truy vấn $\vec{q}$ và vector tài liệu $\vec{d}$, mức độ tương đồng ngữ nghĩa giữa chúng được tính bằng giá trị cosin của góc hợp bởi hai vector trong không gian Euclid theo công thức (\ref{eq:cosine_theory}) \cite{manning2008ir}:
+
+\begin{equation}
+\label{eq:cosine_theory}
+\text{Cosine}(\vec{q}, \vec{d}) = \frac{\vec{q} \cdot \vec{d}}{\|\vec{q}\| \times \|\vec{d}\|} = \frac{\sum_{t \in V} w_{t,q} \cdot w_{t,d}}{\sqrt{\sum_{t \in V} w_{t,q}^2} \times \sqrt{\sum_{t \in V} w_{t,d}^2}}
+\end{equation}
+
+\subsection{Mô hình Tạo sinh tăng cường bằng truy xuất tri thức (RAG)}
+
+Các Mô hình ngôn ngữ lớn (Large Language Models - LLM) như họ mô hình Gemini có khả năng hiểu và sinh ngôn ngữ tự nhiên trôi chảy, nhưng lại tồn tại nhược điểm cố hữu là hiện tượng ``ảo giác'' (Hallucination) --- tức mô hình tự suy diễn ra các thông tin sai lệch hoặc không nắm được các quy định, bảng giá, quy trình nội bộ riêng biệt của từng tổ chức \cite{lewis2020rag}.
+
+Kiến trúc Tạo sinh tăng cường bằng truy xuất tri thức (Retrieval-Augmented Generation - RAG) do Lewis và cộng sự đề xuất giải quyết triệt để hạn chế này bằng quy trình hai pha như mô tả trong Hình~\ref{fig:rag_concept} \cite{lewis2020rag}:
+\begin{enumerate}
+    \item \textit{Pha truy xuất (Retrieval Phase):} Hệ thống tìm kiếm vector trích xuất $K$ đoạn tài liệu nội bộ có điểm tương đồng cao nhất với câu hỏi của người dùng từ kho tri thức đã kiểm duyệt.
+    \item \textit{Pha tạo sinh có neo ngữ cảnh (Grounded Generation Phase):} Các đoạn tài liệu trích xuất được ghép trực tiếp vào chỉ thị hệ thống (System Prompt) gửi tới mô hình LLM kèm theo ràng buộc bắt buộc chỉ được trả lời dựa trên ngữ cảnh được cung cấp và phải trích dẫn nguồn rõ ràng.
+\end{enumerate}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    node distance=0.9cm and 1.2cm,
+    stepbox/.style={rectangle, rounded corners=3pt, draw=black, thick, width=3.6cm, minimum height=1.3cm, align=center, font=\small}
+]
+    \node[stepbox] (query) {1. Câu hỏi người dùng\\(Truy vấn tự nhiên)};
+    \node[stepbox, right=of query] (retriever) {2. Bộ truy xuất Vector\\(TF-IDF \& Cosine)};
+    \node[stepbox, below=of retriever] (kb) {Kho tri thức nội bộ\\(Tài liệu đã kiểm duyệt)};
+    \node[stepbox, right=of retriever] (prompt) {3. Neo ngữ cảnh\\(Prompt + Top-K Tài liệu)};
+    \node[stepbox, below=of prompt] (llm) {4. Mô hình LLM\\(Sinh phản hồi + Trích nguồn)};
+
+    \draw[-Stealth, thick] (query) -- (retriever);
+    \draw[Stealth-Stealth, thick] (retriever) -- (kb);
+    \draw[-Stealth, thick] (retriever) -- (prompt);
+    \draw[-Stealth, thick] (prompt) -- (llm);
+\end{tikzpicture}
+\caption{Nguyên lý hoạt động hai pha của kiến trúc Tạo sinh tăng cường truy xuất (RAG)}
+\label{fig:rag_concept}
+\end{figure}
+
+\section{Khảo sát các hệ thống liên quan và vấn đề đặt ra cho đề tài}
+
+\subsection{Khảo sát các nền tảng đặt lịch khám và tư vấn y tế hiện có}
+
+Hiện nay tại Việt Nam có một số ứng dụng hỗ trợ đặt lịch khám trực tuyến như BookingCare, Medpro hay Jio Health. Các nền tảng này đã giải quyết tốt bài toán kết nối bệnh nhân với danh sách bác sĩ và khung giờ khám. Tuy nhiên, phần lớn các hệ thống thương mại lớn tập trung vào vai trò cổng trung gian đặt lịch (Booking Aggregator) mà chưa tích hợp đồng bộ với quy trình quản trị nội viện khép kín (tiếp đón đo sinh hiệu, chỉ định xét nghiệm cận lâm sàng, quyết toán khấu trừ BHYT theo diện ưu tiên và quản lý xuất kho dược phẩm) cho quy mô phòng khám đa khoa, hoặc các phần mềm quản lý bệnh viện (HIS) lại quá đồ sộ và đắt đỏ để triển khai trên đám mây.
+
+\subsection{Các vấn đề kỹ thuật trọng tâm cần giải quyết trong đề tài}
+
+Từ những cơ sở lý thuyết và kết quả khảo sát nêu trên, đề tài đặt ra bốn bài toán kỹ thuật cốt lõi cần giải quyết ở các chương tiếp theo:
+\begin{enumerate}
+    \item Thiết kế kiến trúc đám mây 3 tầng và cơ sở dữ liệu quan hệ đảm bảo tính toàn vẹn cho toàn bộ quy trình khám chữa bệnh liên khoa với 7 vai trò nhân sự.
+    \item Xây dựng thuật toán kiểm tra định danh công dân chặt chẽ, chống trùng lịch hẹn kép ở cả hai chiều (bác sĩ và bệnh nhân) và tự động hóa công thức khấu trừ viện phí BHYT.
+    \item Thiết kế bộ máy tìm kiếm ngữ nghĩa RAG hỗ trợ tiếng Việt có dấu và không dấu ngay trong bộ nhớ kết hợp mô hình Gemini và cơ chế dự phòng nội bộ (Local NLP Fallback) để đảm bảo hệ thống tư vấn y tế hoạt động liên tục $24/7$.
+    \item Tối ưu hóa mã nguồn, đóng gói vùng chứa Docker bảo mật và triển khai thực tế hệ thống lên đám mây kết nối với cơ sở dữ liệu Neon Serverless PostgreSQL.
+\end{enumerate}

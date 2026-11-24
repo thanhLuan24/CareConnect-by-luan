@@ -1,0 +1,289 @@
+\chapter{CÁC GIẢI PHÁP VÀ KỸ THUẬT LIÊN QUAN ĐỂ THỰC HIỆN ĐỀ TÀI}
+
+Chương 2 trình bày quá trình phân tích yêu cầu chức năng và phi chức năng của hệ thống CareConnect, từ đó đề xuất các giải pháp kiến trúc đám mây, giải pháp thiết kế cơ sở dữ liệu quan hệ và các thuật toán kỹ thuật cốt lõi để giải quyết các bài toán đã đặt ra ở Chương 1.
+
+\section{Phân tích yêu cầu hệ thống CareConnect}
+
+\subsection{Phân tích các tác nhân và yêu cầu chức năng (Functional Requirements)}
+
+Hệ thống CareConnect được thiết kế để phục vụ 7 nhóm tác nhân (Actors) tương ứng với 7 vai trò trong quy trình vận hành phòng khám đa khoa. Toàn bộ các yêu cầu chức năng của hệ thống được định danh bằng mã từ \texttt{FR-01} đến \texttt{FR-15} và trình bày chi tiết trong Bảng~\ref{tab:fr_list}.
+
+\begin{longtable}{|p{1.6cm}|p{3.0cm}|p{4.2cm}|p{5.2cm}|}
+\caption{Danh mục các yêu cầu chức năng của hệ thống CareConnect}
+\label{tab:fr_list} \\
+\hline
+\textbf{Mã YC} & \textbf{Tác nhân chính} & \textbf{Tên chức năng} & \textbf{Mô tả chi tiết yêu cầu} \\
+\hline
+\endfirsthead
+\hline
+\textbf{Mã YC} & \textbf{Tác nhân chính} & \textbf{Tên chức năng} & \textbf{Mô tả chi tiết yêu cầu} \\
+\hline
+\endhead
+FR-01 & Bệnh nhân, Lễ tân & Xác thực CCCD 12 số và đăng ký & Kiểm tra tính hợp lệ của mã tỉnh, mã thế kỷ/giới tính, năm sinh trong số CCCD 12 chữ số và tạo tài khoản. \\
+\hline
+FR-02 & Tất cả vai trò & Đăng nhập và phân quyền JWT & Xác thực mật khẩu bằng BCrypt và cấp phát JWT Token chứa thông tin vai trò (RBAC) có thời hạn 24 giờ. \\
+\hline
+FR-03 & Bác sĩ, Hệ thống & Quản lý và tự động cuốn chiếu ca trực & Bác sĩ cấu hình khung giờ trực rảnh; hệ thống tự động sinh cuốn chiếu lịch trực 14 ngày tiếp theo. \\
+\hline
+FR-04 & Bệnh nhân, Lễ tân & Đặt lịch khám chống trùng lịch kép & Đặt lịch hẹn theo bác sĩ, ngày và khung giờ rảnh; kiểm tra chống trùng lịch cho cả bác sĩ và bệnh nhân. \\
+\hline
+FR-05 & Bệnh nhân, Lễ tân & Đổi lịch và hủy lịch hẹn khám & Cho phép đổi ngày/giờ khám (Reschedule) hoặc hủy lịch hẹn khi lịch đang ở trạng thái chờ hoặc đã xác nhận. \\
+\hline
+FR-06 & Lễ tân & Tiếp đón bệnh nhân và đo sinh hiệu & Tìm kiếm lịch hẹn theo số điện thoại/CCCD, xác nhận tiếp đón (CheckedIn) và lưu huyết áp, nhiệt độ, cân nặng, nhịp tim. \\
+\hline
+FR-07 & Bác sĩ & Khám lâm sàng và lập hồ sơ bệnh án & Ghi nhận chẩn đoán, phương pháp điều trị, chỉ định xét nghiệm cận lâm sàng và kê đơn thuốc chi tiết. \\
+\hline
+FR-08 & Kỹ thuật viên XN & Cập nhật kết quả cận lâm sàng & Xem danh sách yêu cầu xét nghiệm đang chờ và nhập kết quả xét nghiệm kèm đường dẫn hình ảnh. \\
+\hline
+FR-09 & Kế toán, Bệnh nhân & Tính toán khấu trừ BHYT và thu phí & Tự động tổng hợp phí khám, phí thuốc, phí xét nghiệm; khấu trừ BHYT (95\% hoặc 80\%) và xác nhận thanh toán. \\
+\hline
+FR-10 & Dược sĩ & Kiểm tra tồn kho và cấp phát thuốc & Chỉ cho phép xuất thuốc khi bệnh án đã thanh toán, tự động trừ số lượng tồn kho thuốc và cập nhật trạng thái. \\
+\hline
+FR-11 & Dược sĩ, Admin & Quản lý danh mục và nhập kho thuốc & Thêm mới, chỉnh sửa đơn giá, hướng dẫn sử dụng và bổ sung số lượng tồn kho (Restock) cho từng loại dược phẩm. \\
+\hline
+FR-12 & Bệnh nhân, Khách & Tư vấn triệu chứng bằng AI RAG & Trò chuyện với trợ lý ảo y tế để sàng lọc triệu chứng, gợi ý chuyên khoa khám và nhận lời khuyên dinh dưỡng. \\
+\hline
+FR-13 & Bệnh nhân, Khách & Xem tin tức y khoa tự động $24/7$ & Đồng bộ tin tức từ VnExpress Sức Khỏe RSS và tự động biên tập lại dưới góc nhìn bác sĩ thông qua mô hình Gemini. \\
+\hline
+FR-14 & Bệnh nhân, Khách & Định vị bản đồ 4 chi nhánh & Xem danh sách 4 chi nhánh phòng khám kèm tọa độ kinh độ, vĩ độ để tìm đường đi gần nhất trên bản đồ số. \\
+\hline
+FR-15 & Quản trị viên & Thống kê vận hành và quản lý nhân sự & Xem báo cáo tổng quan tỷ lệ hoàn thành khám, quản lý danh sách nhân viên y tế, bệnh nhân và đánh giá phản hồi. \\
+\hline
+\end{longtable}
+
+\subsection{Phân tích các yêu cầu phi chức năng (Non-Functional Requirements)}
+
+Để đảm bảo hệ thống vận hành ổn định, an toàn và tiết kiệm tài nguyên trên môi trường điện toán đám mây, các yêu cầu phi chức năng được quy định từ mã \texttt{NFR-01} đến \texttt{NFR-08} trong Bảng~\ref{tab:nfr_list}.
+
+\begin{table}[H]
+\caption{Danh mục các yêu cầu phi chức năng của hệ thống trên nền tảng đám mây}
+\label{tab:nfr_list}
+\centering
+\begin{tabular}{|p{1.8cm}|p{3.6cm}|p{8.6cm}|}
+\hline
+\textbf{Mã YC} & \textbf{Nhóm tiêu chí} & \textbf{Chỉ tiêu kỹ thuật cần đạt} \\
+\hline
+NFR-01 & Kiến trúc đám mây & Tách biệt hoàn toàn tầng tính toán vùng chứa phi trạng thái (Stateless Container) và tầng cơ sở dữ liệu đám mây (Neon PostgreSQL). \\
+\hline
+NFR-02 & Khả năng tự phục hồi & Tự động thử lại kết nối tối đa 3 lần khi cơ sở dữ liệu Serverless thức dậy từ trạng thái ngủ (Scale-to-Zero). \\
+\hline
+NFR-03 & Hiệu năng mạng & Bật nén phản hồi Brotli và Gzip cho toàn bộ tài nguyên tĩnh và JSON API, giảm trên 75\% dung lượng băng thông truyền tải. \\
+\hline
+NFR-04 & Chống lạm dụng API & Giới hạn tần suất gọi các điểm cuối AI ở mức tối đa 20 yêu cầu/phút trên mỗi địa chỉ IP (Rate Limiting). \\
+\hline
+NFR-05 & Bảo mật vùng chứa & Đóng gói Docker đa giai đoạn và thực thi tiến trình dưới quyền người dùng không phải quản trị tối cao (Non-root User). \\
+\hline
+NFR-06 & Bảo mật dữ liệu & Mật khẩu người dùng phải được băm bằng thuật toán BCrypt; kết nối cơ sở dữ liệu đám mây bắt buộc mã hóa SSL/TLS. \\
+\hline
+NFR-07 & Chống ảo giác AI & Trợ lý AI tuyệt đối không tự kê đơn thuốc, bắt buộc neo ngữ cảnh vào kho tri thức nội bộ và có bộ xử lý NLP dự phòng khi mất kết nối LLM. \\
+\hline
+NFR-08 & Tương thích đa nền tảng & Hệ thống cung cấp đồng thời giao diện Web SPA đáp ứng (Responsive) và ứng dụng di động Flutter kết nối qua HTTPS. \\
+\hline
+\end{tabular}
+\end{table}
+
+\section{Giải pháp kiến trúc hệ thống 3 tầng trên nền tảng Điện toán đám mây}
+
+\subsection{Thiết kế kiến trúc phân tầng Cloud-Native 3 lớp}
+
+Để đáp ứng yêu cầu \texttt{NFR-01}, \texttt{NFR-02} và \texttt{NFR-08}, hệ thống CareConnect được thiết kế theo mô hình kiến trúc đám mây 3 tầng (3-Tier Cloud-Native Architecture) như minh họa trong Hình~\ref{fig:cloud_arch}.
+\begin{enumerate}
+    \item \textit{Tầng Giao diện máy khách (Client Presentation Tier):} Bao gồm giao diện Web SPA được phục vụ trực tiếp từ thư mục \texttt{wwwroot/} (sử dụng HTML5, CSS3, JavaScript thuần và thư viện bản đồ Leaflet) cùng ứng dụng di động đa nền tảng viết bằng khung phát triển Flutter \cite{google2024flutter}.
+    \item \textit{Tầng Tính toán và Xử lý nghiệp vụ đám mây (Cloud Application Tier):} Vận hành bên trong một vùng chứa Docker Linux chạy trên nền tảng PaaS (Render Singapore hoặc Google Cloud Run) \cite{merkel2014docker}. Bên trong vùng chứa là máy chủ Kestrel của ASP.NET Core 8.0 điều phối hệ thống qua đường ống Middleware (ForwardedHeaders, ResponseCompression, CORS, RateLimiter, Authentication/Authorization), tầng 9 lớp điều khiển (Controllers), tầng 6 dịch vụ nghiệp vụ (Services) và dịch vụ chạy nền \texttt{CloudMaintenanceWorker} \cite{microsoft2024aspnet}.
+    \item \textit{Tầng Lưu trữ dữ liệu và Dịch vụ thông minh ngoài (Cloud Data \& External AI Tier):} Sử dụng hệ quản trị cơ sở dữ liệu đám mây Neon Serverless PostgreSQL đặt tại cụm máy chủ AWS Singapore (\texttt{ap-southeast-1}) để lưu trữ bền vững 9 bảng dữ liệu nghiệp vụ \cite{postgresql2024docs}. Đồng thời, tầng nghiệp vụ tích hợp với dịch vụ Google Gemini 2.5 Flash API để tạo sinh câu trả lời tư vấn y tế, nguồn cấp dữ liệu VnExpress Sức Khỏe RSS để cập nhật tin tức và dịch vụ Sentry Cloud để giám sát ngoại lệ.
+\end{enumerate}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    node distance=0.7cm and 0.8cm,
+    layer/.style={rectangle, draw=black, thick, minimum width=14.2cm, align=center, font=\small},
+    comp/.style={rectangle, rounded corners=2pt, draw=black, minimum width=4.1cm, minimum height=1.0cm, align=center, font=\footnotesize}
+]
+    % Layer 1
+    \node[comp] (web) at (-4.5, 4.2) {\textbf{Giao diện Web SPA}\\(HTML5 / JS / Leaflet Map)};
+    \node[comp] (mob) at (0, 4.2) {\textbf{Ứng dụng Flutter Mobile}\\(Android / iOS / SecureStorage)};
+    \node[comp] (docui) at (4.5, 4.2) {\textbf{Cổng Tài liệu API}\\(Swagger UI \& Scalar Modern)};
+    \node[draw=black, dashed, fit=(web) (mob) (docui), label=above:{\small \textbf{1. TẦNG GIAO DIỆN ĐA NỀN TẢNG (CLIENT TIER)}}] (tier1) {};
+
+    % Layer 2
+    \node[layer, minimum height=0.8cm] (mw) at (0, 2.1) {\textbf{Đường ống Middleware:} ForwardedHeaders $\rightarrow$ Nén Brotli/Gzip $\rightarrow$ CORS $\rightarrow$ Rate Limiter $\rightarrow$ JWT Auth};
+    \node[comp] (ctrl) at (-4.5, 0.8) {\textbf{Tầng 9 Controllers}\\(Auth, Appointments, Ai,\\MedicalRecords, Admin...)};
+    \node[comp] (svc) at (0, 0.8) {\textbf{Tầng 6 Business Services}\\(Auth, Appointment, Medical,\\AiService, RagService RAM)};
+    \node[comp] (worker) at (4.5, 0.8) {\textbf{CloudMaintenanceWorker}\\(Khởi tạo DB, Cuốn chiếu\\lịch 14 ngày, Cache Tin tức)};
+    \node[layer, minimum height=0.7cm] (ef) at (0, -0.4) {\textbf{Tầng Truy cập dữ liệu:} Entity Framework Core 8 (\texttt{AppDbContext} - Npgsql RetryOnFailure / SQLite WAL)};
+    \node[draw=black, thick, fit=(mw) (ctrl) (svc) (worker) (ef), label=above:{\small \textbf{2. TẦNG TÍNH TOÁN ĐÁM MÂY - DOCKER CONTAINER .NET 8 (PORT 8080)}}] (tier2) {};
+
+    % Layer 3
+    \node[comp] (neon) at (-4.5, -2.5) {\textbf{Neon Serverless PostgreSQL}\\(Cụm AWS Singapore\\9 Bảng Quan hệ)};
+    \node[comp] (gemini) at (0, -2.5) {\textbf{Google Gemini 2.5 Flash}\\(Tư vấn Y khoa có neo RAG\\\& Biên tập Tin tức)};
+    \node[comp] (rss) at (4.5, -2.5) {\textbf{VnExpress RSS \& Sentry}\\(Tin tức Sức khỏe $24/7$\\\& Giám sát Lỗi Cloud)};
+    \node[draw=black, dashed, fit=(neon) (gemini) (rss), label=below:{\small \textbf{3. TẦNG DỮ LIỆU \& DỊCH VỤ ĐÁM MÂY NGOÀI (CLOUD DATA \& EXTERNAL TIER)}}] (tier3) {};
+
+    \draw[-Stealth, thick] (tier1.south) -- node[right, font=\scriptsize] {HTTPS / Brotli JSON} (tier2.north);
+    \draw[-Stealth, thick] (ef.south) -- (neon.north);
+    \draw[-Stealth, thick] (svc.south) -- (gemini.north);
+    \draw[-Stealth, thick] (worker.south) -- (rss.north);
+\end{tikzpicture}
+\caption{Sơ đồ kiến trúc tổng thể 3 tầng của hệ thống CareConnect trên nền tảng đám mây}
+\label{fig:cloud_arch}
+\end{figure}
+
+\subsection{Giải pháp xử lý đường ống Middleware và tiến trình chạy nền Cloud-Native}
+
+Trên môi trường đám mây như Render hoặc Google Cloud Run, mọi yêu cầu HTTPS từ người dùng đều đi qua bộ cân bằng tải (Load Balancer) trước khi chuyển tiếp vào cổng \texttt{8080} của vùng chứa Docker. Do đó, đường ống Middleware trong tệp \texttt{Program.cs} được thiết kế theo thứ tự nghiêm ngặt:
+\begin{itemize}
+    \item \textit{Giải pháp nhận diện Proxy (\texttt{UseForwardedHeaders}):} Đọc các trường tiêu đề \texttt{X-Forwarded-For} và \texttt{X-Forwarded-Proto} để xác định chính xác địa chỉ IP thật của máy khách phục vụ bộ giới hạn tốc độ (Rate Limiter).
+    \item \textit{Giải pháp nén băng thông (\texttt{UseResponseCompression}):} Áp dụng thuật toán nén Brotli và Gzip ở mức tốc độ cao nhất (\texttt{CompressionLevel.Fastest}) cho các tệp HTML, CSS, JavaScript và phản hồi JSON, giải quyết triệt để bài toán tải tệp giao diện SPA lớn qua mạng di động.
+    \item \textit{Giải pháp khởi tạo không chặn cổng (\texttt{CloudMaintenanceWorker}):} Thay vì thực hiện khởi tạo cơ sở dữ liệu đồng bộ làm chậm thời gian mở cổng \texttt{8080} (dễ gây lỗi quá thời gian chờ Startup Probe trên Cloud), hệ thống ủy quyền cho một lớp kế thừa \texttt{BackgroundService} chạy ngầm ngay sau khi Kestrel sẵn sàng. Tiến trình này sử dụng bộ định thời \texttt{PeriodicTimer} chu kỳ 20 phút để làm mới bộ nhớ đệm tin tức y khoa và chu kỳ 6 giờ để tự động sinh bổ sung lịch trực bác sĩ cho 14 ngày kế tiếp.
+\end{itemize}
+
+\section{Giải pháp thiết kế Cơ sở dữ liệu quan hệ trên Neon PostgreSQL}
+
+\subsection{Cấu trúc các bảng dữ liệu trong lược đồ quan hệ}
+
+Để đảm bảo tính toàn vẹn dữ liệu theo chuẩn ACID trên hệ quản trị Neon Serverless PostgreSQL, cơ sở dữ liệu của hệ thống được thiết kế gồm 9 bảng có mối quan hệ chặt chẽ như tổng hợp trong Bảng~\ref{tab:db_schema_overview}.
+
+\begin{table}[H]
+\caption{Tổng quan cấu trúc 9 bảng dữ liệu của hệ thống trên Neon PostgreSQL}
+\label{tab:db_schema_overview}
+\centering
+\begin{tabular}{|p{0.8cm}|p{3.5cm}|p{2.7cm}|p{7.0cm}|}
+\hline
+\textbf{TT} & \textbf{Tên bảng vật lý} & \textbf{Khóa chính} & \textbf{Chức năng và ràng buộc toàn vẹn chính} \\
+\hline
+1 & \texttt{Users} & \texttt{UserId} & Lưu trữ thông tin định danh của 7 vai trò; đánh chỉ mục duy nhất (\texttt{Unique Index}) trên \texttt{Email} và \texttt{Username}. \\
+\hline
+2 & \texttt{Branches} & \texttt{BranchId} & Lưu thông tin 4 chi nhánh phòng khám kèm địa chỉ và tọa độ địa lý (\texttt{Latitude}, \texttt{Longitude}). \\
+\hline
+3 & \texttt{DoctorSchedules} & \texttt{DoctorScheduleId} & Lưu lịch trực bác sĩ; áp dụng ràng buộc duy nhất trên bộ ba (\texttt{DoctorId}, \texttt{AvailableDate}, \texttt{TimeSlot}). \\
+\hline
+4 & \texttt{Appointments} & \texttt{AppointmentId} & Lưu lịch hẹn khám, chỉ số sinh hiệu, hạng dịch vụ, phí khám và lịch sử hội thoại sàng lọc AI. \\
+\hline
+5 & \texttt{MedicalRecords} & \texttt{MedicalRecordId} & Lưu bệnh án lâm sàng, chẩn đoán, hướng điều trị, tổng viện phí, mức BHYT chi trả và trạng thái phát thuốc. \\
+\hline
+6 & \texttt{Medicines} & \texttt{MedicineId} & Lưu danh mục thuốc, hoạt chất, đơn vị tính, đơn giá (\texttt{decimal(18,2)}) và số lượng tồn kho (\texttt{StockQuantity}). \\
+\hline
+7 & \texttt{PrescriptionDetails} & \texttt{PrescriptionDetailId} & Lưu chi tiết từng dòng thuốc kê trong bệnh án (số lượng, đơn giá tại thời điểm kê, liều dùng). \\
+\hline
+8 & \texttt{LabRequests} & \texttt{LabRequestId} & Lưu các chỉ định xét nghiệm cận lâm sàng, chi phí, trạng thái thực hiện, kết quả và đường dẫn ảnh. \\
+\hline
+9 & \texttt{Testimonials} & \texttt{TestimonialId} & Lưu đánh giá mức độ hài lòng (1--5 sao) và nhận xét của bệnh nhân đối với dịch vụ phòng khám. \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsection{Thiết kế các ràng buộc khóa ngoại và sơ đồ liên kết thực thể}
+
+Trong một hệ thống thông tin y tế, hồ sơ lịch sử khám bệnh và đơn thuốc không được phép bị xóa tự động một cách vô tình. Do đó, tại phương thức \texttt{OnModelCreating} của lớp \texttt{AppDbContext}, các mối quan hệ giữa bảng \texttt{Users} với \texttt{Appointments}, \texttt{MedicalRecords} và \texttt{DoctorSchedules} đều được thiết lập chính sách \texttt{DeleteBehavior.Restrict}. Ngược lại, các bảng chi tiết phụ thuộc chặt vào hồ sơ bệnh án như \texttt{PrescriptionDetails} và \texttt{LabRequests} sử dụng chính sách \texttt{DeleteBehavior.Cascade} theo \texttt{MedicalRecordId}. Sơ đồ liên kết giữa các thực thể trong cơ sở dữ liệu được biểu diễn tại Hình~\ref{fig:erd_diagram}.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    node distance=1.0cm and 1.3cm,
+    entity/.style={rectangle, draw=black, thick, minimum width=3.4cm, minimum height=1.2cm, align=center, font=\footnotesize}
+]
+    \node[entity] (users) {\textbf{USERS}\\PK: UserId\\UK: Email, Username\\Role (7 vai trò)};
+    \node[entity, above left=0.8cm and 1.1cm of users] (sched) {\textbf{DOCTOR\_SCHEDULES}\\PK: DoctorScheduleId\\FK: DoctorId\\UK: (Doc, Date, Slot)};
+    \node[entity, above right=0.8cm and 1.1cm of users] (testi) {\textbf{TESTIMONIALS}\\PK: TestimonialId\\FK: UserId (SetNull)\\Rating, Comment};
+    \node[entity, below left=0.9cm and 1.1cm of users] (appt) {\textbf{APPOINTMENTS}\\PK: AppointmentId\\FK: PatientId, DoctorId\\Vitals, Status, Fee};
+    \node[entity, below right=0.9cm and 1.1cm of users] (medrec) {\textbf{MEDICAL\_RECORDS}\\PK: MedicalRecordId\\FK: PatientId, DoctorId\\FK: AppointmentId};
+    \node[entity, below=1.0cm of appt] (branch) {\textbf{BRANCHES}\\PK: BranchId\\Name, Address\\Latitude, Longitude};
+    \node[entity, below=1.0cm of medrec] (presc) {\textbf{PRESCRIPTION\_DETAILS}\\PK: PrescriptionDetailId\\FK: MedicalRecordId\\FK: MedicineId};
+    \node[entity, right=1.0cm of medrec] (labs) {\textbf{LAB\_REQUESTS}\\PK: LabRequestId\\FK: MedicalRecordId\\LabType, Fee, Results};
+    \node[entity, right=1.0cm of presc] (meds) {\textbf{MEDICINES}\\PK: MedicineId\\Name, UnitPrice\\StockQuantity};
+
+    \draw[-Stealth, thick] (users) -- node[left, font=\scriptsize] {1..N} (sched);
+    \draw[-Stealth, thick] (users) -- node[right, font=\scriptsize] {1..N} (testi);
+    \draw[-Stealth, thick] (users) -- node[left, font=\scriptsize] {1..N} (appt);
+    \draw[-Stealth, thick] (users) -- node[right, font=\scriptsize] {1..N} (medrec);
+    \draw[-Stealth, thick] (appt) -- node[above, font=\scriptsize] {1..N} (medrec);
+    \draw[-Stealth, thick] (medrec) -- node[left, font=\scriptsize] {1..N} (presc);
+    \draw[-Stealth, thick] (medrec) -- node[above, font=\scriptsize] {1..N} (labs);
+    \draw[-Stealth, thick] (meds) -- node[above, font=\scriptsize] {1..N} (presc);
+\end{tikzpicture}
+\caption{Sơ đồ liên kết thực thể (ERD) của 9 bảng dữ liệu trên Neon PostgreSQL}
+\label{fig:erd_diagram}
+\end{figure}
+
+\section{Các giải pháp kỹ thuật xử lý nghiệp vụ y tế và Trí tuệ nhân tạo}
+
+\subsection{Giải pháp đối soát CCCD 12 chữ số và phân quyền RBAC 7 vai trò}
+
+Để đáp ứng yêu cầu \texttt{FR-01} và \texttt{FR-02}, dịch vụ \texttt{AuthService} thực thi thuật toán kiểm tra chéo cấu trúc chuỗi số Căn cước công dân (CCCD) gồm đúng 12 chữ số với ngày tháng năm sinh (\texttt{DateOfBirth}) của người đăng ký qua ba bước kiểm định logic:
+\begin{enumerate}
+    \item \textit{Kiểm định mã tỉnh/thành phố khai sinh (3 chữ số đầu):} Trích xuất chuỗi con $C_{0..2}$ và tra cứu trên tập hợp bảng băm (\texttt{HashSet}) chứa 63 mã tỉnh/thành phố hợp lệ của Việt Nam (từ \texttt{001} Hà Nội đến \texttt{096} Cà Mau).
+    \item \textit{Kiểm định mã thế kỷ sinh và giới tính (chữ số thứ 4):} Gọi $Y$ là năm sinh dương lịch và $c_3 \in \{0..9\}$ là chữ số thứ 4 của CCCD. Hệ thống kiểm tra ràng buộc thế kỷ: nếu $Y \in [1900, 1999]$ thì $c_3 \in \{0, 1\}$; nếu $Y \in [2000, 2099]$ thì $c_3 \in \{2, 3\}$.
+    \item \textit{Kiểm định mã năm sinh (chữ số thứ 5 và thứ 6):} Trích xuất hai chữ số $C_{4..5}$ và đối chiếu đẳng thức bắt buộc với hai chữ số cuối của năm sinh: $C_{4..5} = (Y \bmod 100)$.
+\end{enumerate}
+
+Đồng thời, hệ thống tự động tính tuổi hiện tại của bệnh nhân để thiết lập cờ ưu tiên y tế (\texttt{IsPriority = true}) nếu bệnh nhân là trẻ em dưới 6 tuổi hoặc người cao tuổi từ 75 tuổi trở lên. Mật khẩu người dùng được băm một chiều bằng thuật toán BCrypt trước khi lưu xuống PostgreSQL.
+
+\subsection{Giải pháp chống trùng lịch hẹn kép và tự động hóa quy trình liên khoa}
+
+\subsubsection{Thuật toán kiểm tra 6 bước chống trùng lịch kép (Anti-Double-Booking)}
+
+Khi xử lý yêu cầu đặt lịch hẹn khám mới (\texttt{FR-04}) hoặc đổi lịch hẹn (\texttt{FR-05}) tại lớp \texttt{AppointmentService}, hệ thống thực hiện kiểm tra tuần tự 6 điều kiện: (1) Bệnh nhân tồn tại và đúng vai trò; (2) Bác sĩ tồn tại và đúng vai trò; (3) Ngày hẹn khám không nằm trong quá khứ; (4) Bác sĩ có đăng ký ca trực rảnh trong bảng \texttt{DoctorSchedules} vào đúng ngày và khung giờ đó; (5) Bác sĩ chưa có bất kỳ lịch hẹn nào khác có trạng thái khác \texttt{Cancelled} tại khung giờ đó; và (6) Chính bệnh nhân cũng chưa có lịch hẹn nào khác ở khung giờ đó với bác sĩ khác.
+
+\subsubsection{Công thức tự động quyết toán viện phí, khấu trừ BHYT và xuất kho dược}
+
+Khi bác sĩ hoàn tất khám lâm sàng và lập hồ sơ bệnh án (\texttt{FR-07}, \texttt{FR-09}), lớp \texttt{MedicalRecordService} tự động tính tổng chi phí điều trị $\text{TotalFee}$ kết hợp từ phí khám ban đầu $\text{AppointmentFee}$, tổng tiền đơn thuốc $\text{PrescriptionFee}$ và tổng phí xét nghiệm cận lâm sàng $\text{LabFee}$ theo phương trình (\ref{eq:total_fee}):
+
+\begin{equation}
+\label{eq:total_fee}
+\text{TotalFee} = \text{AppointmentFee} + \sum_{i=1}^{m} \left( \text{UnitPrice}_i \times \text{Quantity}_i \right) + \sum_{j=1}^{k} \text{LabFee}_j
+\end{equation}
+
+Tiếp theo, số tiền được quỹ Bảo hiểm y tế chi trả ($\text{InsuranceCoveredFee}$) và số tiền bệnh nhân đồng chi trả ($\text{PatientCoPayFee}$) được xác định tự động dựa trên phân loại đối tượng (\texttt{PatientType}) và cờ ưu tiên (\texttt{IsPriority}) theo phương trình (\ref{eq:bhyt_cover}) và (\ref{eq:patient_copay}):
+
+\begin{equation}
+\label{eq:bhyt_cover}
+\text{InsuranceCoveredFee} = \begin{cases}
+0.95 \times \text{TotalFee}, & \text{nếu } \text{PatientType} = \text{``Insurance''} \land \text{IsPriority} = \text{true} \\
+0.80 \times \text{TotalFee}, & \text{nếu } \text{PatientType} = \text{``Insurance''} \land \text{IsPriority} = \text{false} \\
+0, & \text{nếu } \text{PatientType} = \text{``Service''}
+\end{cases}
+\end{equation}
+
+\begin{equation}
+\label{eq:patient_copay}
+\text{PatientCoPayFee} = \text{TotalFee} - \text{InsuranceCoveredFee}
+\end{equation}
+
+Luồng phối hợp liên khoa giữa 5 bộ phận từ lúc tiếp đón đến lúc xuất kho dược phẩm (\texttt{FR-06} đến \texttt{FR-10}) được thể hiện trong Hình~\ref{fig:medical_workflow}.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    node distance=0.7cm and 0.6cm,
+    dept/.style={rectangle, rounded corners=2pt, draw=black, thick, minimum width=2.5cm, minimum height=1.5cm, align=center, font=\scriptsize}
+]
+    \node[dept] (s1) {\textbf{1. Lễ tân}\\Tiếp đón CheckedIn\\Đo Huyết áp, Nhiệt độ\\Cân nặng, Nhịp tim};
+    \node[dept, right=of s1] (s2) {\textbf{2. Bác sĩ}\\Khám lâm sàng\\Chỉ định LabRequests\\Kê đơn thuốc};
+    \node[dept, right=of s2] (s3) {\textbf{3. Xét nghiệm}\\Thực hiện cận lâm sàng\\Nhập kết quả \& Ảnh\\(Status: Completed)};
+    \node[dept, right=of s3] (s4) {\textbf{4. Kế toán BHYT}\\Khấu trừ BHYT\\(95\% hoặc 80\%)\\Thu phí (Paid)};
+    \node[dept, right=of s4] (s5) {\textbf{5. Dược sĩ}\\Kiểm tra Paid \& Tồn\\Trừ StockQuantity\\Cấp thuốc (Dispensed)};
+
+    \draw[-Stealth, thick] (s1) -- (s2);
+    \draw[-Stealth, thick] (s2) -- (s3);
+    \draw[-Stealth, thick] (s3) -- (s4);
+    \draw[-Stealth, thick] (s4) -- (s5);
+\end{tikzpicture}
+\caption{Quy trình nghiệp vụ liên khoa khép kín từ tiếp đón đến cấp phát thuốc trong CareConnect}
+\label{fig:medical_workflow}
+\end{figure}
+
+\subsection{Giải pháp kỹ thuật cho động cơ tìm kiếm ngữ nghĩa RAG và Trợ lý AI Y tế}
+
+Để đáp ứng yêu cầu \texttt{FR-12} và \texttt{NFR-07} mà không làm tăng chi phí thuê cơ sở dữ liệu vector bên ngoài, dịch vụ \texttt{RagService} tự hiện thực hóa một bộ máy tìm kiếm vector ngữ nghĩa tiếng Việt ngay trên bộ nhớ RAM theo quy trình 4 bước:
+\begin{enumerate}
+    \item \textit{Chuẩn hóa tiếng Việt không dấu và tách từ kép (Bi-gram Tokenization):} Văn bản đầu vào được tách dấu bằng chuẩn hóa Unicode \texttt{NormalizationForm.FormD} và ghép nối song song chuỗi gốc có dấu với chuỗi không dấu. Sau khi loại bỏ bảng từ dừng (\texttt{stopWords}), thuật toán sinh thêm các cặp từ liền kề $w_i\_w_{i+1}$ (Bi-grams) để bảo toàn ngữ nghĩa của các thuật ngữ y khoa hai âm tiết như \texttt{tim\_mạch}, \texttt{xét\_nghiệm}, \texttt{nhịn\_ăn}.
+    \item \textit{Chấm điểm tương đồng lai ghép (Hybrid Semantic Scoring):} Điểm khớp cuối cùng $\text{FinalScore}$ giữa câu hỏi người dùng $\vec{q}$ và mỗi đoạn tri thức y tế nội bộ $\vec{d}$ là sự kết hợp có trọng số giữa độ tương đồng Cosine TF-IDF với điểm thưởng khớp từ khóa chuyên ngành ($\text{KeywordBoost}$) và điểm thưởng khớp tiêu đề tài liệu ($\text{TitleBoost}$) theo phương trình (\ref{eq:rag_final_score}):
+\end{enumerate}
+
+\begin{equation}
+\label{eq:rag_final_score}
+\text{FinalScore}(\vec{q}, \vec{d}) = \min \left( 1.0,\; 0.65 \times \text{Cosine}(\vec{q}, \vec{d}) + \min(0.15 \times H_{\text{kw}},\; 0.45) + B_{\text{title}} \right)
+\end{equation}
+
+Trong đó, $H_{\text{kw}}$ là số lượng từ khóa chuyên môn của đoạn tri thức xuất hiện trong truy vấn (hỗ trợ cả có dấu và không dấu), và $B_{\text{title}} = 0.10$ nếu truy vấn chứa từ khóa thuộc tiêu đề tài liệu. Ba đoạn tài liệu có điểm cao nhất vượt ngưỡng $\text{FinalScore} \ge 0.22$ sẽ được trích xuất và đưa vào chỉ thị hệ thống (\texttt{SystemPrompt}) gửi tới mô hình Google Gemini 2.5 Flash kèm cơ chế dự phòng NLP nội bộ khi mất kết nối mạng.

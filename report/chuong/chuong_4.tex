@@ -1,0 +1,168 @@
+\chapter{MÔ TẢ CHI TIẾT CÁC BƯỚC ĐẨY DỰ ÁN LÊN HỆ THỐNG ĐÁM MÂY}
+
+Chương 4 trình bày chi tiết quy trình kỹ thuật từng bước để tối ưu hóa, đóng gói và đẩy toàn bộ hệ thống CareConnect từ môi trường phát triển cục bộ lên vận hành thực tế trên hạ tầng điện toán đám mây, bao gồm cấu hình mã nguồn Cloud-Native, đóng gói vùng chứa Docker, khởi tạo cơ sở dữ liệu đám mây Neon Serverless PostgreSQL, đồng bộ kho mã nguồn GitHub và triển khai dịch vụ lên nền tảng PaaS.
+
+\section{Tổng quan quy trình và kiến trúc triển khai đám mây}
+
+\subsection{Lựa chọn mô hình kết hợp PaaS Container và Serverless PostgreSQL}
+
+Khi chuyển đổi một hệ thống y tế từ máy chủ cục bộ lên điện toán đám mây, nếu tiếp tục giữ cơ sở dữ liệu tệp phẳng SQLite (\texttt{hospital.db}) bên trong vùng chứa, hệ thống sẽ gặp lỗi mất dữ liệu mỗi khi nền tảng đám mây khởi động lại hoặc cập nhật phiên bản mới do đặc tính hệ thống tệp tạm thời (Ephemeral Filesystem) của vùng chứa.
+
+Để khắc phục triệt để vấn đề này đồng thời tối ưu chi phí vận hành, đề tài áp dụng mô hình triển khai kết hợp giữa **Nền tảng thực thi vùng chứa đám mây (Render Cloud / Google Cloud Run)** và **Cơ sở dữ liệu đám mây không máy chủ (Neon Serverless PostgreSQL)** đặt cùng khu vực địa lý **Đông Nam Á (Singapore)**. Quy trình tổng thể gồm 5 giai đoạn nối tiếp nhau được mô tả trong Hình~\ref{fig:cloud_deploy_pipeline}.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    node distance=0.6cm,
+    stage/.style={rectangle, rounded corners=3pt, draw=black, thick, minimum width=13.5cm, minimum height=1.0cm, align=center, font=\small}
+]
+    \node[stage] (st1) {\textbf{Bước 1: Chuẩn hóa mã nguồn Cloud-Native (\texttt{Program.cs}, \texttt{CloudMaintenanceWorker.cs})}\\Tự động phân giải URI PostgreSQL, bật nén Brotli/Gzip, Rate Limiting, Health Check \texttt{/health}};
+    \node[stage, below=of st1] (st2) {\textbf{Bước 2: Đóng gói vùng chứa Docker đa giai đoạn (\texttt{Dockerfile}, \texttt{.dockerignore})}\\Loại bỏ tệp DB cục bộ, biên dịch Release .NET 8.0, cấu hình cổng \texttt{8080} và quyền Non-root \texttt{\$APP\_UID}};
+    \node[stage, below=of st2] (st3) {\textbf{Bước 3: Khởi tạo CSDL Đám mây Neon Serverless PostgreSQL (AWS Singapore)}\\Tạo nhánh dữ liệu \texttt{production}, kích hoạt SSL Pooler và đồng bộ tự động 9 bảng + dữ liệu mẫu};
+    \node[stage, below=of st3] (st4) {\textbf{Bước 4: Đẩy mã nguồn và đặc tả hạ tầng lên GitHub (\texttt{render.yaml}, \texttt{cloudbuild.yaml})}\\Khởi tạo Git nhánh \texttt{main} và đồng bộ lên kho lưu trữ \texttt{thanhLuan24/CareConnect-by-luan}};
+    \node[stage, below=of st4] (st5) {\textbf{Bước 5: Triển khai dịch vụ Web/API lên Đám mây \& Kiểm thử vận hành thực tế}\\Liên kết Webhook GitHub $\rightarrow$ Tự động Build Docker $\rightarrow$ Cấp phát HTTPS \& Kiểm tra điểm cuối \texttt{/health}};
+
+    \draw[-Stealth, thick] (st1.south) -- (st2.north);
+    \draw[-Stealth, thick] (st2.south) -- (st3.north);
+    \draw[-Stealth, thick] (st3.south) -- (st4.north);
+    \draw[-Stealth, thick] (st4.south) -- (st5.north);
+\end{tikzpicture}
+\caption{Quy trình 5 bước chuẩn hóa và triển khai hệ thống CareConnect lên điện toán đám mây}
+\label{fig:cloud_deploy_pipeline}
+\end{figure}
+
+\subsection{Đối chiếu cấu hình hệ thống trước và sau khi tối ưu hóa đám mây}
+
+Trước khi thực hiện đẩy dự án lên đám mây, hệ thống đã được rà soát toàn diện để loại bỏ các điểm nghẽn cục bộ. Bảng~\ref{tab:cloud_optimization_diff} tổng hợp các thay đổi kỹ thuật cốt lõi giữa phiên bản cục bộ ban đầu và phiên bản đám mây đã tối ưu.
+
+\begin{table}[H]
+\caption{So sánh cấu hình kỹ thuật của dự án trước và sau khi tối ưu hóa cho Điện toán đám mây}
+\label{tab:cloud_optimization_diff}
+\centering
+\begin{tabular}{|p{3.2cm}|p{5.2cm}|p{5.6cm}|}
+\hline
+\textbf{Hạng mục kỹ thuật} & \textbf{Trước khi tối ưu (Bản cục bộ)} & \textbf{Sau khi tối ưu (Bản Điện toán đám mây)} \\
+\hline
+Hệ quản trị CSDL & Chỉ dùng tệp SQLite (\texttt{hospital.db}) cục bộ, dễ mất dữ liệu khi container khởi động lại. & Hỗ trợ song song **Neon Serverless PostgreSQL** (trên Cloud) và SQLite WAL (dự phòng Local). \\
+\hline
+Cơ chế kết nối CSDL & Chuỗi kết nối tĩnh, không có cơ chế tự phục hồi khi mạng chập chờn. & Tự động phân giải chuỗi URI \texttt{postgresql://...}, bật SSL và \texttt{EnableRetryOnFailure(3)}. \\
+\hline
+Khởi tạo bảng \& Lịch trực & Chạy đồng bộ trong luồng chính lúc khởi động, chỉ sinh lịch trực 1 lần duy nhất. & Chạy bất đồng bộ qua \texttt{CloudMaintenanceWorker}, tự cuốn chiếu lịch trực 14 ngày mỗi 6 giờ. \\
+\hline
+Tối ưu băng thông Web & Chưa bật nén phản hồi, ép \texttt{no-cache} cho toàn bộ tệp tĩnh ($\approx 1{,}9\text{ MB}$/lượt tải). & Bật nén **Brotli \& Gzip**, tách biệt chính sách bộ nhớ đệm giữa \texttt{index.html} và tài nguyên tĩnh. \\
+\hline
+Bảo mật vùng chứa Docker & Chạy dưới quyền \texttt{root}, đặt \texttt{chmod 777}, đóng gói kèm cả tệp \texttt{hospital.db}. & Chạy dưới quyền **Non-root (\texttt{\$APP\_UID})**, loại bỏ toàn bộ tệp nhạy cảm qua \texttt{.dockerignore}. \\
+\hline
+Giám sát \& Bảo vệ API & Chưa có điểm cuối kiểm tra sức khỏe, chưa giới hạn lượt gọi AI. & Bổ sung điểm cuối \texttt{/health} kiểm tra kết nối DB trực tiếp và Rate Limiter 20 yêu cầu/phút/IP. \\
+\hline
+\end{tabular}
+\end{table}
+
+\section{Bước 1 và Bước 2: Chuẩn hóa mã nguồn Cloud-Native và Đóng gói Docker}
+
+\subsection{Tối ưu hóa mã nguồn ứng dụng ASP.NET Core 8.0 cho môi trường đám mây}
+
+\subsubsection{Cấu hình bộ phân giải chuỗi kết nối Neon PostgreSQL và cơ chế tự thử lại}
+
+Trong tệp dự án \texttt{web.csproj}, gói thư viện \texttt{Npgsql.EntityFrameworkCore.PostgreSQL} (phiên bản \texttt{8.0.11}) được bổ sung. Tại đầu tệp \texttt{Program.cs}, công tắc tương thích kiểu thời gian \texttt{AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true)} được kích hoạt để đảm bảo các truy vấn ngày tháng hoạt động đồng nhất trên PostgreSQL.
+
+Hệ thống tự động kiểm tra biến môi trường \texttt{DATABASE\_URL} (hoặc \texttt{NEON\_DATABASE\_URL} và \texttt{ConnectionStrings:DefaultConnection}). Hàm \texttt{NormalizePostgresConnectionString} tự động bóc tách chuỗi URI tiêu chuẩn của Neon (\texttt{postgresql://user:password@host/dbname?sslmode=require}) thành đối tượng \texttt{NpgsqlConnectionStringBuilder} với cấu hình \texttt{SslMode = SslMode.Require}, kích thước vùng chứa kết nối \texttt{MaxPoolSize = 20} và bật cơ chế tự động thử lại \texttt{EnableRetryOnFailure(maxRetryCount: 3, maxRetryDelay: TimeSpan.FromSeconds(5))} để xử lý mượt mà thời gian đánh thức (Cold Wakeup) của cơ sở dữ liệu Serverless.
+
+\subsubsection{Thiết lập điểm cuối kiểm tra sức khỏe (\texttt{/health}) và bảo vệ tài nguyên}
+
+Để nền tảng đám mây (Render / Google Cloud Run) có thể tự động kiểm tra trạng thái sẵn sàng của vùng chứa và thực hiện triển khai không gián đoạn (Zero-Downtime Deployment), điểm cuối \texttt{GET /health} đã được thiết lập trong \texttt{Program.cs}. Khi nhận yêu cầu, điểm cuối này thực thi lệnh \texttt{await db.Database.CanConnectAsync()} để xác minh kết nối thực tế tới máy chủ Neon PostgreSQL và trả về đối tượng JSON gồm trạng thái \texttt{Healthy}, tên nhà cung cấp \texttt{PostgreSQL (Neon Serverless)} cùng dấu thời gian UTC.
+
+\subsection{Đóng gói vùng chứa bằng Multi-stage Dockerfile và lọc tệp nhạy cảm}
+
+\subsubsection{Thiết lập tệp \texttt{.dockerignore} ngăn chặn rò rỉ dữ liệu cục bộ}
+
+Tệp \texttt{.dockerignore} ở thư mục gốc của dự án được cấu hình để loại bỏ hoàn toàn các tệp cơ sở dữ liệu cục bộ (\texttt{hospital.db}, \texttt{*.db-shm}, \texttt{*.db-wal}), tệp bảng tính tài khoản (\texttt{CareConnect\_Accounts.xlsx}), thư mục mã nguồn di động (\texttt{mobile\_client}) và các thư mục biên dịch trung gian (\texttt{bin/}, \texttt{obj/}, \texttt{.git/}). Việc này vừa giảm dung lượng ngữ cảnh gửi lên trình biên dịch Docker trên đám mây, vừa đảm bảo dữ liệu thử nghiệm cục bộ không bị đóng gói nhầm vào ảnh sản phẩm.
+
+\subsubsection{Cấu trúc tệp \texttt{Dockerfile} đa giai đoạn chạy quyền phi quản trị}
+
+Tệp \texttt{Dockerfile} được thiết kế gồm 4 giai đoạn tách biệt:
+\begin{enumerate}
+    \item \textit{Giai đoạn \texttt{base}:} Sử dụng ảnh nền \texttt{mcr.microsoft.com/dotnet/aspnet:8.0}, mở cổng tiêu chuẩn đám mây \texttt{EXPOSE 8080}, thiết lập biến môi trường \texttt{PORT=8080}, \texttt{ASPNETCORE\_HTTP\_PORTS=8080}, \texttt{ASPNETCORE\_ENVIRONMENT=Production} và phân quyền thư mục \texttt{/app} cho tài khoản phi quản trị \texttt{\$APP\_UID}.
+    \item \textit{Giai đoạn \texttt{build}:} Sử dụng ảnh \texttt{mcr.microsoft.com/dotnet/sdk:8.0}, sao chép tệp \texttt{web.csproj} trước để tận dụng bộ nhớ đệm tầng (Layer Caching) khi chạy \texttt{dotnet restore}, sau đó biên dịch mã nguồn ở chế độ \texttt{Release}.
+    \item \textit{Giai đoạn \texttt{publish}:} Xuất bản gói thực thi tối giản với cờ \texttt{/p:UseAppHost=false}.
+    \item \textit{Giai đoạn \texttt{final}:} Chỉ sao chép kết quả đã xuất bản từ giai đoạn \texttt{publish} sang giai đoạn \texttt{base} với cờ \texttt{--chown=\$APP\_UID:\$APP\_UID}, chuyển sang ngữ cảnh người dùng \texttt{USER \$APP\_UID} và khởi chạy thông qua điểm vào \texttt{ENTRYPOINT ["dotnet", "web.dll"]}.
+\end{enumerate}
+
+\section{Bước 3: Khởi tạo và đẩy dữ liệu lên Neon Serverless PostgreSQL}
+
+\subsection{Thiết lập cụm cơ sở dữ liệu trên Neon Console tại khu vực Singapore}
+
+Quá trình khởi tạo cơ sở dữ liệu đám mây trên nền tảng Neon (\texttt{https://console.neon.tech}) được thực hiện theo các bước sau:
+\begin{enumerate}
+    \item Đăng nhập vào bảng điều khiển Neon Console bằng tài khoản GitHub và khởi tạo dự án mới mang tên \texttt{careConnect}.
+    \item Lựa chọn phiên bản PostgreSQL 16 và đặt vị trí máy chủ tại khu vực \textbf{AWS Asia Pacific 1 (Singapore) --- \texttt{ap-southeast-1}} nhằm tối ưu hóa độ trễ truyền tải mạng về Việt Nam và đồng bộ vị trí với máy chủ chạy vùng chứa ứng dụng.
+    \item Hệ thống Neon khởi tạo nhánh dữ liệu mặc định \texttt{production} cùng cơ sở dữ liệu \texttt{neondb} và bộ điều phối kết nối (\texttt{Connection Pooler}) hỗ trợ lên tới hàng nghìn kết nối đồng thời thông qua trình điều khiển PgBouncer tích hợp sẵn.
+    \item Tại mục \textbf{Connect} trên bảng điều khiển Neon, trích xuất chuỗi kết nối chuẩn URI có bật chế độ bảo mật \texttt{sslmode=require} trỏ tới điểm cuối Pooler: \texttt{ep-autumn-cell-ao2wi8ay-pooler.c-2.ap-southeast-1.aws.neon.tech}.
+\end{enumerate}
+
+\subsection{Thực thi đồng bộ lược đồ 9 bảng và dữ liệu khởi tạo lên đám mây}
+
+Sau khi cấu hình chuỗi kết nối Neon PostgreSQL vào biến môi trường \texttt{DATABASE\_URL}, ứng dụng được kích hoạt để tiến trình \texttt{CloudMaintenanceWorker} tự động thực thi phương thức \texttt{EnsureCreatedAsync()} thông qua nhà cung cấp Npgsql. Hệ thống tự động dịch toàn bộ mô hình thực thể C\# sang các câu lệnh định nghĩa dữ liệu (\texttt{CREATE TABLE}, \texttt{CREATE UNIQUE INDEX}, \texttt{ALTER TABLE ... ADD CONSTRAINT}) tương thích chuẩn PostgreSQL:
+\begin{itemize}
+    \item Các khóa chính tự tăng được ánh xạ sang kiểu \texttt{integer GENERATED BY DEFAULT AS IDENTITY}.
+    \item Các trường tiền tệ (\texttt{CalculatedFee}, \texttt{UnitPrice}, \texttt{TotalFee}, \texttt{InsuranceCoveredFee}, \texttt{PatientCoPayFee}, \texttt{Fee}) được ánh xạ chính xác sang kiểu số thập phân cố định \texttt{numeric(18,2)}.
+    \item Ngay trong lần kết nối đầu tiên, hệ thống đã tự động tạo thành công 9 bảng, nạp 4 chi nhánh phòng khám, 5 loại thuốc, 18 tài khoản mẫu, 4 lịch hẹn mẫu, 1 hồ sơ bệnh án, 3 đánh giá phản hồi và sinh tự động hơn 1.100 khung giờ trực rảnh cho 12 bác sĩ trong 14 ngày kế tiếp lên máy chủ Neon tại Singapore.
+\end{itemize}
+
+\section{Bước 4 và Bước 5: Đồng bộ GitHub, Triển khai PaaS và Kiểm thử đám mây}
+
+\subsection{Đẩy mã nguồn lên GitHub và thiết lập đặc tả hạ tầng (IaC)}
+
+\subsubsection{Khởi tạo kho lưu trữ Git và đẩy mã nguồn lên GitHub}
+
+Tại thư mục gốc chứa tệp \texttt{Dockerfile} và \texttt{web.csproj}, kho lưu trữ Git được khởi tạo và đồng bộ lên kho lưu trữ trực tuyến tại địa chỉ \texttt{https://github.com/thanhLuan24/CareConnect-by-luan.git} trên nhánh chính \texttt{main}. Tệp \texttt{.gitignore} được cấu hình để loại bỏ toàn bộ thư mục biên dịch (\texttt{bin/}, \texttt{obj/}, \texttt{build/}, \texttt{.dart\_tool/}) và các tệp cơ sở dữ liệu SQLite cục bộ (\texttt{*.db}), giữ cho kho mã nguồn trên GitHub sạch và chuẩn hóa.
+
+\subsubsection{Xây dựng bộ tệp cấu hình tự động hóa triển khai đa nền tảng}
+
+Để dự án có thể triển khai linh hoạt trên cả hai nền tảng đám mây phổ biến là **Render Cloud** (không yêu cầu thẻ tín dụng quốc tế) và **Google Cloud Run** (hạ tầng Serverless của Google), ba tệp cấu hình Hạ tầng dưới dạng mã nguồn (Infrastructure as Code - IaC) đã được xây dựng và đưa vào kho lưu trữ:
+\begin{itemize}
+    \item \textit{Tệp đặc tả Blueprint \texttt{render.yaml}:} Định nghĩa dịch vụ web \texttt{careconnect-api} sử dụng môi trường \texttt{runtime: docker}, trỏ tới \texttt{dockerfilePath: ./Dockerfile}, đặt khu vực máy chủ tại \texttt{region: singapore}, cấu hình đường dẫn kiểm tra sức khỏe tự động \texttt{healthCheckPath: /health} và thiết lập sẵn các biến môi trường \texttt{PORT=8080}, \texttt{ASPNETCORE\_ENVIRONMENT=Production}, \texttt{EnableSwagger=true} và \texttt{Gemini\_\_Model=gemini-2.5-flash}.
+    \item \textit{Tệp kịch bản \texttt{cloudbuild.yaml} và \texttt{deploy-cloudrun.ps1}:} Tự động hóa quy trình sinh khóa bí mật JWT 256-bit ngẫu nhiên, đóng gói ảnh vùng chứa đẩy lên Google Artifact Registry và phát hành dịch vụ lên Google Cloud Run tại khu vực \texttt{asia-southeast1} (Singapore) với cấu hình tự co giãn từ \texttt{0} đến \texttt{3} thực thể (\texttt{--min-instances 0 --max-instances 3}) và bộ nhớ \texttt{512Mi}.
+    \item \textit{Quy trình GitHub Actions (\texttt{.github/workflows/deploy-cloudrun.yml}):} Tự động kích hoạt tiến trình đóng gói và cập nhật phiên bản mới lên đám mây mỗi khi có thao tác \texttt{git push} lên nhánh \texttt{main}.
+\end{itemize}
+
+\subsection{Triển khai dịch vụ lên đám mây và kết quả kiểm thử vận hành thực tế}
+
+\subsubsection{Các bước liên kết và phát hành dịch vụ Web/API trên bảng điều khiển Cloud}
+
+Quy trình kích hoạt dịch vụ từ kho lưu trữ GitHub \texttt{thanhLuan24/CareConnect-by-luan} lên nền tảng đám mây Render Singapore được thực hiện qua 4 bước:
+\begin{enumerate}
+    \item Đăng nhập vào bảng điều khiển Render (\texttt{https://dashboard.render.com}) thông qua tài khoản GitHub đã liên kết.
+    \item Khởi tạo dịch vụ mới (\textbf{New Web Service}) và chọn kho lưu trữ \texttt{CareConnect-by-luan} (nhánh \texttt{main}).
+    \item Hệ thống đám mây tự động nhận diện môi trường thực thi là \textbf{Docker} thông qua tệp \texttt{Dockerfile} và \texttt{render.yaml} ở thư mục gốc; chọn khu vực triển khai là \textbf{Singapore (Southeast Asia)}.
+    \item Khai báo các biến môi trường bảo mật trong mục \textbf{Environment Variables} gồm: \texttt{DATABASE\_URL} (chuỗi kết nối Neon PostgreSQL), \texttt{Jwt\_\_Key} (khóa bí mật ký JWT Token) và \texttt{GEMINI\_API\_KEY} (khóa kết nối Google Gemini 2.5 Flash), sau đó nhấn \textbf{Deploy Web Service}.
+\end{enumerate}
+
+\subsubsection{Kết quả kiểm thử sức khỏe hệ thống và nghiệm thu các điểm cuối trên đám mây}
+
+Sau khi quá trình biên dịch ảnh Docker hoàn tất và vùng chứa mở cổng \texttt{8080}, hệ thống đám mây thực hiện truy vấn kiểm tra sức khỏe tự động vào điểm cuối \texttt{/health} và xác nhận trạng thái \texttt{Live}. Kết quả kiểm thử thực tế các chức năng của hệ thống khi kết nối với cơ sở dữ liệu đám mây Neon PostgreSQL được tổng hợp trong Bảng~\ref{tab:cloud_verification_results}.
+
+\begin{table}[H]
+\caption{Kết quả kiểm thử nghiệm thu các điểm cuối và nghiệp vụ trên hệ thống đám mây}
+\label{tab:cloud_verification_results}
+\centering
+\begin{tabular}{|p{3.8cm}|p{3.0cm}|p{2.2cm}|p{5.0cm}|}
+\hline
+\textbf{Hạng mục kiểm thử} & \textbf{Điểm cuối / Giao diện} & \textbf{Thời gian / Mã HTTP} & \textbf{Kết quả thực tế ghi nhận} \\
+\hline
+Kiểm tra sức khỏe \& Kết nối Cloud DB & \texttt{GET /health} & \texttt{200 OK} ($\approx 88\text{ ms}$) & Trả về \texttt{"status": "Healthy"}, \texttt{"provider": "PostgreSQL (Neon Serverless)"}, \texttt{"databaseConnected": true}. \\
+\hline
+Truy vấn danh sách chi nhánh phòng khám & \texttt{GET /api/branches} & \texttt{200 OK} ($\approx 56\text{ ms}$) & Trả về đầy đủ 4 chi nhánh từ Neon PostgreSQL kèm tọa độ bản đồ Leaflet. \\
+\hline
+Đăng ký tài khoản bệnh nhân thực tế & \texttt{POST /api/auth/register} & \texttt{200 OK} & Tạo thành công bản ghi \texttt{UserId = 19} (\texttt{Nong thanh luan}) lưu bền vững trên Neon DB. \\
+\hline
+Đặt lịch khám \& Xác nhận lịch hẹn thực tế & \texttt{POST /api/appointments} & \texttt{201 Created} & Tạo thành công lịch hẹn \texttt{AppointmentId = 104} với BS. John Doe (trạng thái \texttt{Confirmed}). \\
+\hline
+Đồng bộ tin tức y khoa VnExpress RSS & \texttt{GET /api/ai/trending-news} & \texttt{200 OK} ($\approx 157\text{ ms}$) & Thu thập và nạp bộ nhớ đệm 12 bài báo sức khỏe mới nhất phân loại theo chuyên khoa. \\
+\hline
+Truy vấn trợ lý ảo AI RAG Vector Search & \texttt{POST /api/ai/chat} & \texttt{200 OK} & Khớp ngữ nghĩa trên 3.686 từ vựng, trả lời đúng quy trình phòng khám kèm nguồn trích dẫn. \\
+\hline
+\end{tabular}
+\end{table}
+
+Đối với ứng dụng di động Flutter (\texttt{mobile\_client}), tệp \texttt{lib/config/api\_config.dart} đã được cấu hình đọc hằng số môi trường \texttt{String.fromEnvironment('API\_URL')}, cho phép biên dịch gói cài đặt Android APK kết nối trực tiếp tới địa chỉ HTTPS của máy chủ đám mây bằng lệnh: \texttt{flutter build apk --release --dart-define=API\_URL=https://<ten-mien-cloud>}.

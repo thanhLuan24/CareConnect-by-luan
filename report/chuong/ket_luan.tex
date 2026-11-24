@@ -1,0 +1,35 @@
+\chapter*{KẾT LUẬN}
+\addcontentsline{toc}{chapter}{KẾT LUẬN}
+
+Phần kết luận tổng hợp lại những kết quả chính đã hoàn thành của đề tài, chỉ ra những hạn chế kỹ thuật còn tồn tại trên môi trường thực tế và đề xuất hướng phát triển tiếp theo cho hệ thống CareConnect.
+
+\textbf{1. Kết quả đạt được}
+
+Qua quá trình nghiên cứu lý thuyết, phân tích thiết kế, xây dựng phần mềm và triển khai thực tế lên hạ tầng điện toán đám mây, đề tài đã hoàn thành toàn bộ các mục tiêu đề ra với những kết quả cụ thể như sau:
+\begin{itemize}
+    \item Đã phân tích, thiết kế và xây dựng hoàn chỉnh hệ thống quản lý phòng khám và đặt lịch khám bệnh trực tuyến CareConnect theo kiến trúc đám mây 3 tầng trên nền tảng ASP.NET Core 8.0, đáp ứng đầy đủ 15 yêu cầu chức năng (\texttt{FR-01} đến \texttt{FR-15}) cho 7 vai trò người dùng (Quản trị viên, Bác sĩ, Bệnh nhân, Lễ tân, Kế toán viện phí, Dược sĩ và Kỹ thuật viên xét nghiệm).
+    \item Đã thiết kế và triển khai thành công lược đồ cơ sở dữ liệu quan hệ gồm 9 bảng chuẩn hóa trên hệ quản trị cơ sở dữ liệu đám mây không máy chủ Neon Serverless PostgreSQL tại cụm máy chủ Singapore (\texttt{ap-southeast-1}), đảm bảo lưu trữ bền vững cho 19 tài khoản người dùng, 4 chi nhánh, 5 danh mục thuốc, các hồ sơ lịch hẹn, bệnh án và hơn 1.100 khung giờ lịch trực bác sĩ.
+    \item Đã xây dựng thành công các thuật toán nghiệp vụ y tế chuyên sâu: thuật toán đối soát cấu trúc CCCD 12 chữ số kết hợp ngày sinh, quy trình 6 bước kiểm tra chống trùng lịch hẹn kép, công thức tự động quyết toán viện phí và khấu trừ Bảo hiểm y tế (95\% cho diện ưu tiên và 80\% cho diện thông thường) liên thông trực tiếp với quy trình kiểm soát và trừ tồn kho dược phẩm.
+    \item Đã hiện thực hóa động cơ tìm kiếm vector ngữ nghĩa RAG (\texttt{RagService}) hỗ trợ tiếng Việt có dấu và không dấu với 12 đoạn tài liệu tri thức và 3.686 từ vựng/cụm từ ghép đôi (Bi-grams), kết hợp cùng mô hình Google Gemini 2.5 Flash và bộ xử lý ngôn ngữ tự nhiên dự phòng nội bộ (\texttt{Local Fallback NLP}) giúp ngăn chặn hiện tượng ảo giác trong tư vấn y tế và duy trì dòng tin tức sức khỏe tự động $24/7$.
+    \item Đã tối ưu hóa toàn diện mã nguồn theo chuẩn Cloud-Native (nén phản hồi Brotli/Gzip, giới hạn tần suất gọi AI 20 yêu cầu/phút/IP, tự động thử lại kết nối CSDL \texttt{EnableRetryOnFailure}, tiến trình chạy nền \texttt{CloudMaintenanceWorker}, điểm cuối kiểm tra sức khỏe \texttt{/health}), đóng gói vùng chứa bằng Multi-stage Dockerfile bảo mật phi quản trị và thiết lập hoàn chỉnh kho mã nguồn cùng kịch bản triển khai tự động trên GitHub.
+\end{itemize}
+
+\textbf{2. Hạn chế của đề tài}
+
+Bên cạnh những kết quả đã đạt được, hệ thống hiện tại vẫn còn một số hạn chế nhất định:
+\begin{itemize}
+    \item Bộ chỉ mục vector của kho tri thức RAG (\texttt{RagService}), bộ nhớ đệm tin tức y khoa và bộ đếm giới hạn tần suất truy cập (Rate Limiter) hiện đang được lưu trữ trên bộ nhớ RAM cục bộ của từng vùng chứa, do đó chưa đồng bộ hóa trạng thái dùng chung khi hệ thống mở rộng ngang (Horizontal Scaling) lên nhiều vùng chứa chạy song song.
+    \item Cơ chế khởi tạo lược đồ cơ sở dữ liệu đang sử dụng phương thức \texttt{EnsureCreatedAsync()} nên chưa hỗ trợ tự động nâng cấp cấu trúc bảng theo từng phiên bản lịch sử như cơ chế EF Core Migrations.
+    \item Chức năng thông báo đẩy trên thiết bị di động (\texttt{NotificationService}) hiện mới dừng ở mức mô phỏng ghi nhật ký máy chủ và trường hình ảnh kết quả xét nghiệm cận lâm sàng (\texttt{ImageUrl}) mới lưu trữ dưới dạng liên kết văn bản, chưa tích hợp dịch vụ lưu trữ tệp đối tượng đám mây (Cloud Object Storage).
+    \item Khi vận hành trên gói dịch vụ đám mây miễn phí (Free Tier), vùng chứa ứng dụng sẽ chuyển sang trạng thái nghỉ nếu không có truy cập sau 15 phút, dẫn đến độ trễ khởi động lại (Cold Start) ở yêu cầu đầu tiên sau khi nghỉ.
+\end{itemize}
+
+\textbf{3. Hướng phát triển}
+
+Trong giai đoạn tiếp theo, đề tài hướng tới việc nâng cấp hệ thống theo bốn định hướng chính:
+\begin{itemize}
+    \item Tích hợp phần mở rộng \texttt{pgvector} trực tiếp trên Neon PostgreSQL để lưu trữ vector nhúng (Embeddings) của kho tri thức y tế xuống cơ sở dữ liệu đám mây, cho phép Quản trị viên thêm, sửa, xóa tài liệu hướng dẫn y khoa động ngay trên giao diện quản trị.
+    \item Bổ sung tầng bộ nhớ đệm phân tán Redis không máy chủ (như Upstash Redis) để chia sẻ trạng thái Rate Limiter và bộ nhớ đệm tin tức giữa nhiều vùng chứa khi hệ thống tự động mở rộng quy mô.
+    \item Tích hợp dịch vụ lưu trữ đối tượng đám mây (Cloudflare R2 hoặc Amazon S3) để cho phép Kỹ thuật viên xét nghiệm tải trực tiếp tệp ảnh chụp X-quang, siêu âm lên đám mây và tích hợp bộ công cụ Firebase Admin SDK để gửi thông báo đẩy FCM thực tế tới điện thoại bệnh nhân.
+    \item Kết nối cổng thanh toán điện tử trực tuyến (VNPay hoặc VietQR Dynamic Webhook) để tự động hóa hoàn toàn khâu xác nhận thu viện phí đồng chi trả BHYT.
+\end{itemize}

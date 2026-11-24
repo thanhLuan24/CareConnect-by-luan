@@ -1,0 +1,45 @@
+\chapter*{LỜI MỞ ĐẦU}
+\addcontentsline{toc}{chapter}{LỜI MỞ ĐẦU}
+
+Phần mở đầu trình bày tổng quan về bối cảnh thực tiễn, lý do lựa chọn đề tài, mục tiêu nghiên cứu, đối tượng, phạm vi cũng như ý nghĩa khoa học và thực tiễn của việc xây dựng và triển khai hệ thống y tế thông minh CareConnect lên nền tảng điện toán đám mây.
+
+\textbf{1. Lý do chọn đề tài}
+
+Trong bối cảnh chuyển đổi số ngành y tế tại Việt Nam đang diễn ra mạnh mẽ, nhu cầu đặt lịch khám chữa bệnh trực tuyến, quản lý hồ sơ bệnh án điện tử liên thông và sàng lọc triệu chứng ban đầu ngày càng trở nên cấp thiết. Tại nhiều phòng khám đa khoa và cơ sở y tế hiện nay, quy trình tiếp đón bệnh nhân vẫn còn phụ thuộc nhiều vào thủ tục giấy tờ hoặc các phần mềm cục bộ (On-Premises) rời rạc. Bệnh nhân thường gặp khó khăn trong việc xác định chuyên khoa phù hợp với triệu chứng của mình, dẫn đến tình trạng đăng ký nhầm chuyên khoa, chờ đợi lâu tại quầy lễ tân và gây quá tải cục bộ.
+
+Bên cạnh đó, việc vận hành hệ thống phần mềm y tế trên máy chủ vật lý cục bộ đòi hỏi chi phí đầu tư ban đầu lớn, khó mở rộng khi lưu lượng truy cập tăng đột biến và tiềm ẩn nguy cơ mất mát dữ liệu nếu không có cơ chế sao lưu đám mây chuyên nghiệp. Sự kết hợp giữa kiến trúc Điện toán đám mây không máy chủ (Serverless Cloud Computing), công nghệ đóng gói vùng chứa (Docker Container) và kỹ thuật Tạo sinh tăng cường bằng truy xuất tri thức (Retrieval-Augmented Generation - RAG) mở ra hướng giải quyết toàn diện cho cả bài toán nghiệp vụ y tế lẫn bài toán tối ưu hạ tầng công nghệ thông tin. Xuất phát từ thực tế đó, em lựa chọn đề tài: \textit{``Xây dựng và triển khai hệ thống đặt lịch khám, quản lý bệnh viện và tư vấn y tế thông minh CareConnect trên nền tảng điện toán đám mây''}.
+
+\textbf{2. Mục đích nghiên cứu}
+
+Mục đích cốt lõi của đề tài là nghiên cứu, thiết kế, xây dựng hoàn chỉnh và triển khai thực tế hệ thống phần mềm CareConnect lên hạ tầng điện toán đám mây, đạt được các mục tiêu cụ thể sau:
+\begin{itemize}
+    \item Xây dựng hệ thống quản lý phòng khám đa chi nhánh khép kín với 7 vai trò người dùng: Quản trị viên (Admin), Bác sĩ (Doctor), Bệnh nhân (Patient), Nhân viên lễ tân (Receptionist), Kế toán viện phí (Finance), Dược sĩ (Pharmacist) và Kỹ thuật viên xét nghiệm (LabTechnician).
+    \item Thiết kế và hiện thực hóa động cơ truy xuất ngữ nghĩa vector (RAG Vector Search) bằng thuật toán TF-IDF kết hợp độ tương đồng Cosine (Cosine Similarity) và mô hình ngôn ngữ lớn Google Gemini 2.5 Flash nhằm tư vấn triệu chứng sơ bộ, gợi ý đúng chuyên khoa và ngăn chặn hiện tượng ảo giác (Anti-Hallucination) trong tư vấn y tế.
+    \item Tối ưu hóa mã nguồn theo chuẩn đám mây gốc (Cloud-Native), đóng gói bằng Docker đa giai đoạn (Multi-stage Build) và triển khai lên nền tảng đám mây kết hợp cơ sở dữ liệu quan hệ không máy chủ Neon Serverless PostgreSQL tại cụm máy chủ Singapore.
+\end{itemize}
+
+\textbf{3. Đối tượng và phạm vi nghiên cứu}
+
+Đối tượng nghiên cứu của đề tài bao gồm:
+\begin{itemize}
+    \item Quy trình nghiệp vụ khám chữa bệnh ngoại trú tại phòng khám đa khoa: từ khâu xác thực căn cước công dân (CCCD) 12 chữ số, đặt lịch hẹn chống trùng lịch kép, tiếp đón đo chỉ số sinh hiệu, khám lâm sàng, chỉ định cận lâm sàng, tính toán khấu trừ Bảo hiểm y tế (BHYT) đến cấp phát thuốc và trừ tồn kho dược phẩm.
+    \item Các kỹ thuật phát triển ứng dụng đám mây và đa nền tảng: khung phát triển ASP.NET Core 8.0, Entity Framework Core 8.0, giao diện Web đơn trang (Single Page Application - SPA), ứng dụng di động Flutter, thuật toán tìm kiếm ngữ nghĩa TF-IDF/Bi-gram tiếng Việt và giao thức xác thực JSON Web Token (JWT).
+    \item Kiến trúc hạ tầng điện toán đám mây: nền tảng vùng chứa đám mây (Render Cloud / Google Cloud Run) và hệ quản trị cơ sở dữ liệu đám mây Neon Serverless PostgreSQL.
+\end{itemize}
+
+Phạm vi nghiên cứu của đề tài tập trung vào mô hình hệ thống phòng khám đa khoa gồm 4 chi nhánh hoạt động tại Thành phố Hồ Chí Minh và tỉnh Thái Nguyên, hỗ trợ tư vấn sàng lọc định hướng chuyên khoa (không thay thế chẩn đoán lâm sàng hay kê đơn thuốc tự động của bác sĩ) và triển khai vận hành thực nghiệm trên cụm máy chủ đám mây khu vực Đông Nam Á (Singapore).
+
+\textbf{4. Phương pháp nghiên cứu}
+
+Để hoàn thành mục tiêu đề ra, đề tài kết hợp các phương pháp nghiên cứu sau:
+\begin{itemize}
+    \item \textit{Phương pháp nghiên cứu tài liệu:} Thu thập, phân tích tài liệu kiến trúc phần mềm của Microsoft .NET 8, tài liệu kỹ thuật của hệ quản trị cơ sở dữ liệu PostgreSQL/Neon, nguyên lý hoạt động của mô hình RAG và các quy định về cấu trúc mã định danh công dân, mức hưởng BHYT tại Việt Nam.
+    \item \textit{Phương pháp phân tích và thiết kế hệ thống hướng đối tượng:} Mô hình hóa kiến trúc phân tầng 3 lớp, thiết kế lược đồ cơ sở dữ liệu quan hệ gồm 9 bảng chuẩn hóa và xây dựng các biểu đồ luồng xử lý nghiệp vụ.
+    \item \textit{Phương pháp thực nghiệm trên đám mây:} Trực tiếp đóng gói ứng dụng thành vùng chứa Docker, triển khai cơ sở dữ liệu lên Neon Serverless PostgreSQL, cấu hình đường ống tích hợp và triển khai liên tục (CI/CD) qua GitHub và kiểm thử thực tế các chỉ số sức khỏe hệ thống trên đám mây.
+\end{itemize}
+
+\textbf{5. Ý nghĩa khoa học và thực tiễn của đề tài}
+
+Về mặt khoa học, đề tài minh chứng tính hiệu quả của việc kết hợp động cơ tìm kiếm vector từ khóa mở rộng (TF-IDF + Bi-gram tiếng Việt không dấu/có dấu + Cosine Similarity) với mô hình ngôn ngữ lớn để kiểm soát ngữ cảnh trả lời của AI trong lĩnh vực nhạy cảm như y tế, đồng thời đề xuất mẫu kiến trúc tự phục hồi (Self-Healing Cloud Lifecycle) khi kết hợp vùng chứa .NET 8 với cơ sở dữ liệu Serverless có cơ chế tự thu nhỏ về không (Scale-to-Zero).
+
+Về mặt thực tiễn, hệ thống CareConnect cung cấp giải pháp phần mềm y tế đa nền tảng (Web và Mobile) có thể triển khai nhanh cho các phòng khám vừa và nhỏ với chi phí hạ tầng tối thiểu nhờ tận dụng hiệu quả mô hình đám mây không máy chủ, giúp rút ngắn thời gian chờ đợi của bệnh nhân và chuẩn hóa quy trình phối hợp liên khoa.

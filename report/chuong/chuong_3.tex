@@ -1,0 +1,144 @@
+\chapter{CÁC KẾT QUẢ ĐẠT ĐƯỢC QUA QUÁ TRÌNH VẬN DỤNG KỸ THUẬT VÀ PHƯƠNG PHÁP}
+
+Chương 3 trình bày chi tiết các kết quả thực tế đã xây dựng và đạt được sau khi vận dụng các giải pháp kiến trúc và thuật toán ở Chương 2 để giải quyết các bài toán đặt ra ở Chương 1, bao gồm kết quả hiện thực hóa hệ thống dịch vụ Backend API, cơ sở dữ liệu đám mây Neon PostgreSQL, động cơ AI RAG và giao diện đa nền tảng Web/Mobile.
+
+\section{Kết quả xây dựng hệ thống Backend API và các phân hệ nghiệp vụ}
+
+\subsection{Kết quả hiện thực hóa tầng điều khiển RESTful API (Controllers)}
+
+Hệ thống Backend của CareConnect đã được xây dựng hoàn chỉnh trên nền tảng ASP.NET Core 8.0 với tổng cộng 9 lớp điều khiển (\texttt{Controllers}) được phân hoạch thành 4 nhóm tài liệu đặc tả OpenAPI/Scalar (\texttt{auth}, \texttt{appointments}, \texttt{ai}, \texttt{admin}). Thống kê chi tiết các lớp điều khiển và các điểm cuối API đạt được trong mã nguồn dự án được trình bày trong Bảng~\ref{tab:api_controllers}.
+
+\begin{longtable}{|p{3.4cm}|p{2.2cm}|p{3.2cm}|p{5.2cm}|}
+\caption{Kết quả hiện thực hóa 9 lớp điều khiển API trong hệ thống CareConnect}
+\label{tab:api_controllers} \\
+\hline
+\textbf{Lớp Controller} & \textbf{Nhóm API} & \textbf{Đường dẫn gốc} & \textbf{Các điểm cuối và nghiệp vụ đã hoàn thành} \\
+\hline
+\endfirsthead
+\hline
+\textbf{Lớp Controller} & \textbf{Nhóm API} & \textbf{Đường dẫn gốc} & \textbf{Các điểm cuối và nghiệp vụ đã hoàn thành} \\
+\hline
+\endhead
+\texttt{AuthController} & \texttt{auth} & \texttt{/api/auth} & Đăng nhập JWT, đăng ký bệnh nhân, đối soát CCCD 12 số, đặt lại mật khẩu, xem/sửa hồ sơ cá nhân, lấy danh sách bác sĩ, đăng ký FCM Token (Đáp ứng \texttt{FR-01}, \texttt{FR-02}). \\
+\hline
+\texttt{TestimonialsController} & \texttt{auth} & \texttt{/api/testimonials} & Xem danh sách đánh giá phản hồi và gửi đánh giá chất lượng dịch vụ phòng khám. \\
+\hline
+\texttt{ScheduleController} & \texttt{appointments} & \texttt{/api/schedule} & Bác sĩ cấu hình ca trực rảnh, xem lịch trực cá nhân, truy vấn các khung giờ còn trống theo bác sĩ và ngày (Đáp ứng \texttt{FR-03}). \\
+\hline
+\texttt{AppointmentsController} & \texttt{appointments} & \texttt{/api/appointments} & Đặt lịch hẹn mới, đổi lịch, tra cứu theo SĐT/CCCD, lọc lịch khám hôm nay, cập nhật trạng thái và chỉ số sinh hiệu (Đáp ứng \texttt{FR-04}, \texttt{FR-05}, \texttt{FR-06}). \\
+\hline
+\texttt{MedicalRecordsController} & \texttt{appointments} & \texttt{/api/medicalrecords} & Bác sĩ lập bệnh án điện tử, nhập kết quả xét nghiệm Lab, thanh toán viện phí BHYT và dược sĩ xuất thuốc trừ tồn kho (Đáp ứng \texttt{FR-07} đến \texttt{FR-10}). \\
+\hline
+\texttt{MedicinesController} & \texttt{appointments} & \texttt{/api/medicines} & Danh mục thuốc, thêm/sửa/xóa thuốc và nhập thêm số lượng tồn kho (\texttt{restock}) (Đáp ứng \texttt{FR-11}). \\
+\hline
+\texttt{BranchesController} & \texttt{appointments} & \texttt{/api/branches} & Truy xuất danh sách 4 chi nhánh phòng khám kèm tọa độ bản đồ số (Đáp ứng \texttt{FR-14}). \\
+\hline
+\texttt{AiController} & \texttt{ai} & \texttt{/api/ai} & Trò chuyện trợ lý ảo RAG, phân tích triệu chứng sơ bộ, tin tức y khoa tự động, tìm kiếm vector trực tiếp trong kho tri thức (Đáp ứng \texttt{FR-12}, \texttt{FR-13}). \\
+\hline
+\texttt{AdminController} & \texttt{admin} & \texttt{/api/admin} & Thống kê tổng quan tỷ lệ khám, danh sách bác sĩ tiêu biểu, quản trị toàn bộ tài khoản nhân sự và bệnh nhân (Đáp ứng \texttt{FR-15}). \\
+\hline
+\end{longtable}
+
+\subsection{Kết quả xây dựng tầng dịch vụ nghiệp vụ và tiến trình nền đám mây}
+
+Tầng dịch vụ (\texttt{Services/}) đã được cài đặt tách biệt thông qua 6 giao diện chuẩn hóa cùng 1 dịch vụ chạy nền:
+\begin{itemize}
+    \item \texttt{AuthService.cs} (676 dòng mã nguồn): Xử lý trọn vẹn thuật toán đối soát CCCD 12 chữ số, tự động sinh tên đăng nhập cho bệnh nhân tiếp đón tại quầy (Walk-in), băm mật khẩu BCrypt và ký mã thông báo JWT.
+    \item \texttt{AppointmentService.cs} (363 dòng mã nguồn): Thực thi quy trình 6 bước kiểm tra chống trùng lịch hẹn kép, phân loại phí khám theo hạng dịch vụ (\texttt{Standard} và \texttt{VIP}) và tìm kiếm hồ sơ nhanh cho lễ tân.
+    \item \texttt{MedicalRecordService.cs} (427 dòng mã nguồn): Liên kết chặt chẽ giữa kết quả khám lâm sàng, chi tiết đơn thuốc, chỉ định xét nghiệm cận lâm sàng, tự động khấu trừ BHYT (95\% hoặc 80\%) và kiểm soát trừ tồn kho dược phẩm an toàn.
+    \item \texttt{CloudMaintenanceWorker.cs} (163 dòng mã nguồn): Tự động khởi tạo lược đồ CSDL bất đồng bộ khi vùng chứa khởi chạy, tự động cuốn chiếu lịch trực 14 ngày tiếp theo cho toàn bộ 12 bác sĩ và làm nóng bộ nhớ đệm tin tức y khoa định kỳ.
+\end{itemize}
+
+\section{Kết quả triển khai Cơ sở dữ liệu đám mây trên Neon PostgreSQL}
+
+\subsection{Kết quả khởi tạo lược đồ và đồng bộ dữ liệu thực tế trên đám mây}
+
+Vận dụng giải pháp kết nối cơ sở dữ liệu linh hoạt ở Chương 2, toàn bộ 9 bảng dữ liệu của hệ thống CareConnect đã được khởi tạo và vận hành thực tế trên hệ quản trị cơ sở dữ liệu đám mây **Neon Serverless PostgreSQL** tại cụm máy chủ Singapore (\texttt{ap-southeast-1.aws.neon.tech}). Kết quả thống kê số lượng bản ghi thực tế đang lưu trữ trên đám mây được trình bày trong Bảng~\ref{tab:neon_live_data}.
+
+\begin{table}[H]
+\caption{Thống kê dữ liệu thực tế đang lưu trữ trên Neon Serverless PostgreSQL (Singapore)}
+\label{tab:neon_live_data}
+\centering
+\begin{tabular}{|p{3.8cm}|p{2.2cm}|p{8.0cm}|}
+\hline
+\textbf{Tên bảng trên Neon DB} & \textbf{Số bản ghi} & \textbf{Chi tiết dữ liệu thực tế đã ghi nhận} \\
+\hline
+\texttt{Users} & 19 & Gồm 18 tài khoản nhân sự/bệnh nhân mẫu của 7 vai trò và 1 tài khoản bệnh nhân mới đăng ký thực tế (\texttt{UserId = 19}, \texttt{luan}). \\
+\hline
+\texttt{DoctorSchedules} & 1.113 & Lịch trực đã được \texttt{CloudMaintenanceWorker} tự động sinh cuốn chiếu cho 12 bác sĩ chuyên khoa đến ngày \texttt{2026-12-06}. \\
+\hline
+\texttt{Appointments} & 5 & Gồm 4 lịch khám mẫu đã hoàn thành (\texttt{Completed}) và 1 lịch hẹn mới đặt thực tế (\texttt{AppointmentId = 104}, trạng thái \texttt{Confirmed}). \\
+\hline
+\texttt{Branches} & 4 & 4 chi nhánh: Quận 1, Quận 3, Thủ Đức (TP.HCM) và Chi nhánh TP. Thái Nguyên. \\
+\hline
+\texttt{Medicines} & 5 & 5 danh mục thuốc thiết yếu (Paracetamol, Amoxicillin, Ibuprofen, Decolgen Forte, Vitamin C) kèm số lượng tồn kho. \\
+\hline
+\texttt{MedicalRecords} & 1 & Hồ sơ bệnh án mẫu số \texttt{\#1} liên kết với cuộc hẹn số \texttt{\#1}, trạng thái \texttt{BillingStatus = Paid}. \\
+\hline
+\texttt{Testimonials} & 3 & 3 đánh giá phản hồi 5 sao từ người dùng tại TP.HCM, Hà Nội và Thái Nguyên. \\
+\hline
+\texttt{PrescriptionDetails} & 0 & Bảng chi tiết đơn thuốc đã khởi tạo khóa ngoại sẵn sàng cho các ca khám mới. \\
+\hline
+\texttt{LabRequests} & 0 & Bảng chỉ định xét nghiệm cận lâm sàng đã khởi tạo khóa ngoại sẵn sàng. \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsection{Kết quả phân bổ nhân sự chuyên khoa và chi nhánh phòng khám}
+
+Dữ liệu trên đám mây đã thiết lập đầy đủ mô hình nhân sự cho 12 chuyên khoa lâm sàng phân bổ tại các chi nhánh (Nội khoa tổng quát, Nhi khoa, Tim mạch, Da liễu, Mắt, Răng hàm mặt, Sản phụ khoa, Tai mũi họng, Xương khớp, Tiêu hóa, Thần kinh và Ung bướu) cùng đội ngũ nhân viên vận hành gồm Lễ tân (\texttt{reception@hospital.com}), Kế toán viện phí (\texttt{finance@hospital.com}), Dược sĩ (\texttt{pharmacist@hospital.com}) và Kỹ thuật viên xét nghiệm (\texttt{labtech@hospital.com}). Cơ chế chỉ mục duy nhất (\texttt{Unique Index}) trên bảng \texttt{DoctorSchedules} đã hoạt động chính xác trên PostgreSQL, ngăn chặn hoàn toàn việc sinh trùng lặp ca trực khi vùng chứa khởi động lại nhiều lần.
+
+\section{Kết quả xây dựng động cơ AI RAG Vector Search và Tin tức y khoa}
+
+\subsection{Kết quả lập chỉ mục ngữ nghĩa kho tri thức y tế nội bộ}
+
+Khi khởi chạy dịch vụ \texttt{RagService} (440 dòng mã nguồn), hệ thống đã nạp và đánh chỉ mục vector TF-IDF thành công cho kho tri thức nội bộ của phòng khám CareConnect. Nhật ký vận hành thực tế ghi nhận các thông số kỹ thuật đạt được như trong Bảng~\ref{tab:rag_results}.
+
+\begin{table}[H]
+\caption{Kết quả vận hành thực tế của động cơ RAG Vector Search và dịch vụ Tin tức AI}
+\label{tab:rag_results}
+\centering
+\begin{tabular}{|p{5.5cm}|p{3.0cm}|p{5.5cm}|}
+\hline
+\textbf{Chỉ số kỹ thuật đánh giá} & \textbf{Kết quả đạt được} & \textbf{Ghi chú đối chiếu từ hệ thống} \\
+\hline
+Số lượng tài liệu tri thức chuẩn hóa (\texttt{KnowledgeChunk}) & 12 đoạn tri thức & Bao phủ bảng giá, BHYT, quy trình nhịn ăn xét nghiệm, cấp cứu, chi nhánh, chuyên khoa. \\
+\hline
+Kích thước từ điển ngữ nghĩa (\texttt{VocabularySize}) & 3.686 từ \& Bi-gram & Bao gồm cả từ đơn và từ ghép đôi tiếng Việt có dấu và không dấu. \\
+\hline
+Số lượng tài liệu trích xuất tối đa mỗi lượt (\texttt{topK}) & 3 tài liệu & Ngưỡng điểm tương đồng tối thiểu $\text{minScore} = 0.22$. \\
+\hline
+Mô hình ngôn ngữ lớn tích hợp & \texttt{gemini-2.5-flash} & Kèm cơ chế tự động chuyển sang \texttt{Local Fallback NLP} khi không có khóa API hoặc lỗi mạng. \\
+\hline
+Thời gian tải và phân tích luồng RSS VnExpress & $\approx 157{,}67\text{ ms}$ & Thu thập 12 bài báo sức khỏe mới nhất và tự động phân loại vào 8 chuyên khoa. \\
+\hline
+Giới hạn tần suất bảo vệ điểm cuối AI (\texttt{AiRateLimit}) & 20 yêu cầu/phút/IP & Tự động trả mã trạng thái \texttt{429 Too Many Requests} khi vượt ngưỡng. \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsection{Kết quả kiểm soát chống ảo giác và phân loại cảnh báo khẩn cấp}
+
+Qua kiểm thử thực tế trên cả hai điểm cuối \texttt{POST /api/ai/chat} và \texttt{POST /api/ai/analyze-symptoms}, hệ thống đạt được ba kết quả quan trọng:
+\begin{enumerate}
+    \item \textit{Trích xuất chính xác tri thức nội bộ:} Khi người dùng hỏi bằng tiếng Việt có dấu hoặc không dấu về chi phí khám VIP, thủ tục BHYT hoặc quy trình nhịn ăn xét nghiệm máu, động cơ RAG đều trả về đúng đoạn tài liệu nguồn kèm chỉ số độ tin cậy ngữ nghĩa (\texttt{Confidence}) và cờ \texttt{IsRAGGrounded = true}.
+    \item \textit{Phát hiện dấu hiệu nguy kịch (Red Flags):} Khi thông điệp chứa các cụm từ khóa nguy hiểm đến tính mạng như ``đau ngực dữ dội'', ``yếu nửa người'', ``méo miệng'', ``khó thở cấp'', hệ thống lập tức dừng tư vấn thông thường và phát cảnh báo khẩn cấp yêu cầu gọi cấp cứu 115.
+    \item \textit{Tự động gợi ý chuyên khoa đặt lịch:} Phản hồi của AI tự động trích xuất trường \texttt{SuggestedSpecialization} (ví dụ: \texttt{Tim mạch}, \texttt{Tiêu hóa}, \texttt{Tai Mũi Họng}, \texttt{Nhi khoa}) để giao diện người dùng hiển thị nút chuyển hướng đặt lịch khám ngay lập tức với bác sĩ thuộc chuyên khoa đó.
+\end{enumerate}
+
+\section{Kết quả xây dựng giao diện đa nền tảng Web SPA và Flutter Mobile}
+
+\subsection{Kết quả giao diện Web SPA đa vai trò và cổng tài liệu Scalar}
+
+Tại thư mục \texttt{wwwroot/}, ứng dụng Web SPA đã được hoàn thiện với tệp cấu trúc giao diện \texttt{index.html} (469.868 byte), tệp định kiểu \texttt{css/style.css} (102.254 byte) và bộ điều khiển logic phía máy khách \texttt{js/app.js} (638.137 byte). Giao diện Web SPA tự động biến đổi bảng điều khiển (Dashboard) tương ứng với từng vai trò đăng nhập:
+\begin{itemize}
+    \item \textit{Giao diện Bệnh nhân:} Hỗ trợ tra cứu bác sĩ, đặt lịch hẹn trực tuyến, tích hợp khung trò chuyện trợ lý ảo AI RAG, công cụ sàng lọc triệu chứng, đọc tin tức y khoa $24/7$, tính chỉ số khối cơ thể (BMI/TDEE) và bản đồ tương tác Leaflet định vị 4 chi nhánh.
+    \item \textit{Giao diện Nhân viên y tế (Bác sĩ, Lễ tân, Kế toán, Dược sĩ, Kỹ thuật viên Lab, Admin):} Cung cấp màn hình tiếp đón nhập chỉ số sinh hiệu, màn hình bác sĩ lập bệnh án điện tử và kê đơn thuốc, màn hình phòng xét nghiệm cập nhật kết quả cận lâm sàng, màn hình thu ngân quyết toán BHYT, màn hình kho dược xuất thuốc và bảng điều khiển thống kê toàn viện cho Admin.
+    \item \textit{Cổng tài liệu API tương tác:} Tích hợp giao diện Scalar API Reference chủ đề \texttt{DeepSpace} tại đường dẫn \texttt{/scalar/v1} và Swagger UI tại \texttt{/swagger}, cho phép kiểm thử trực tiếp toàn bộ các điểm cuối API với mã thông báo JWT Bearer trên đám mây.
+\end{itemize}
+
+\subsection{Kết quả ứng dụng di động Flutter kết nối đám mây}
+
+Tại thư mục \texttt{mobile\_client/}, ứng dụng di động Flutter đã được xây dựng hoàn chỉnh cho hệ điều hành Android và iOS với cấu trúc mã nguồn trong \texttt{lib/} gồm tầng cấu hình (\texttt{api\_config.dart}), tầng mô hình (\texttt{branch\_model.dart}, \texttt{record\_model.dart}), tầng dịch vụ kết nối REST API (\texttt{api\_service.dart} - 679 dòng mã nguồn) và các màn hình chuyên biệt cho từng vai trò (\texttt{patient\_home\_view.dart}, \texttt{doctor\_home\_view.dart}, \texttt{reception\_home\_view.dart}, \texttt{admin\_home\_view.dart}, \texttt{branch\_view.dart}).
+
+Ứng dụng di động đã tích hợp thành công thư viện \texttt{flutter\_secure\_storage} để bảo vệ mã thông báo JWT, thư viện \texttt{geolocator} và \texttt{flutter\_map} để đo khoảng cách thực tế từ vị trí GPS của điện thoại tới chi nhánh CareConnect gần nhất, thư viện \texttt{mobile\_scanner} phục vụ quét mã QR và tham số biên dịch động \texttt{--dart-define=API\_URL=...} để kết nối trực tiếp tới máy chủ đám mây qua giao thức HTTPS.

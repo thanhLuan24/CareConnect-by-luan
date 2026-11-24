@@ -1,6 +1,7 @@
 **/.git
 **/.github
 **/.idea
+**/.agents
 **/bin
 **/obj
 **/.vs
@@ -13,6 +14,10 @@ hospital.db-wal
 *.db-wal
 CareConnect_Accounts.xlsx
 *.xlsx
+*.docx
+*.doc
+*.pdf
+report
 mobile_client
 scratch_excel
 Dockerfile*

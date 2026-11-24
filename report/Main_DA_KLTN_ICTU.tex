@@ -1,0 +1,145 @@
+\documentclass[13pt,a4paper,oneside]{extreport}
+
+% --- CẤU HÌNH TIẾNG VIỆT & PHÔNG CHỮ TIMES NEW ROMAN (MỤC 2.1 HUONGDAN.DOC) ---
+\usepackage[utf8]{inputenc}
+\usepackage[T5]{fontenc}
+\usepackage[vietnamese]{babel}
+\usepackage{mathptmx} % Phông chữ Times New Roman chuẩn học thuật
+
+% --- CẤU HÌNH KHỔ GIẤY A4 & CĂN LỀ (TRÊN 2.5CM, DƯỚI 2.5CM, TRÁI 3CM, PHẢI 2CM) ---
+\usepackage[a4paper,top=2.5cm,bottom=2.5cm,left=3cm,right=2cm]{geometry}
+
+% --- CẤU HÌNH GIÃN DÒNG MULTIPLE 1.3 & KHOẢNG CÁCH ĐOẠN BEFORE/AFTER 6PT ---
+\usepackage{setspace}
+\setstretch{1.3}
+\setlength{\parskip}{6pt}
+\setlength{\parindent}{1.0cm}
+
+% --- CÁC GÓI BẢNG BIỂU, HÌNH VẼ, CÔNG THỨC TOÁN HỌC & SƠ ĐỒ MỰC ĐEN TIKZ ---
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{caption}
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric, arrows.meta, positioning, calc, fit}
+
+% --- ĐÁNH SỐ HÌNH VẼ, BẢNG BIỂU, PHƯƠNG TRÌNH GẮN VỚI SỐ CHƯƠNG (MỤC 2.3) ---
+\numberwithin{equation}{chapter}
+\numberwithin{figure}{chapter}
+\numberwithin{table}{chapter}
+\captionsetup[table]{position=above, labelfont=bf, labelsep=period}
+\captionsetup[figure]{position=below, labelfont=bf, labelsep=period}
+
+% --- ĐÁNH SỐ TIỂU MỤC TỐI ĐA 4 CHỮ SỐ (VÍ DỤ 4.1.2.1 - MỤC 2.2) ---
+\setcounter{secnumdepth}{3}
+\setcounter{tocdepth}{3}
+
+% --- ĐỊNH DẠNG TIÊU ĐỀ CHƯƠNG VIẾT HOA, ĐẬM (MỤC 1 HUONGDAN.DOC) ---
+\usepackage{titlesec}
+\titleformat{\chapter}[display]
+  {\normalfont\fontsize{16}{20}\bfseries\centering}
+  {\MakeUppercase{\chaptertitlename}\ \thechapter}
+  {6pt}
+  {\fontsize{16}{20}\bfseries\MakeUppercase}
+\titlespacing*{\chapter}{0pt}{-10pt}{18pt}
+
+\titleformat{\section}
+  {\normalfont\fontsize{14}{18}\bfseries}
+  {\thesection.}
+  {0.5em}
+  {}
+\titlespacing*{\section}{0pt}{10pt}{6pt}
+
+\titleformat{\subsection}
+  {\normalfont\fontsize{13}{17}\bfseries}
+  {\thesubsection.}
+  {0.5em}
+  {}
+\titlespacing*{\subsection}{0pt}{8pt}{6pt}
+
+\titleformat{\subsubsection}
+  {\normalfont\fontsize{13}{17}\bfseries\itshape}
+  {\thesubsubsection.}
+  {0.5em}
+  {}
+\titlespacing*{\subsubsection}{0pt}{6pt}{6pt}
+
+% --- ĐÁNH SỐ TRANG Ở GIỮA, PHÍA DƯỚI MỖI TRANG GIẤY (MỤC 2.1 HUONGDAN.DOC) ---
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0pt}
+\fancyfoot[C]{\thepage}
+
+\fancypagestyle{plain}{%
+  \fancyhf{}
+  \renewcommand{\headrulewidth}{0pt}
+  \renewcommand{\footrulewidth}{0pt}
+  \fancyfoot[C]{\thepage}
+}
+
+% --- CẤU HÌNH LIÊN KẾT MỤC LỤC & TÀI LIỆU THAM KHẢO ---
+\usepackage[hidelinks]{hyperref}
+\newcommand{\figpath}{Hinh_ve/}
+
+\begin{document}
+
+% --- TRANG BÌA BÁO CÁO ĐỒ ÁN / THỰC TẬP ICTU ---
+\begin{titlepage}
+    \begin{center}
+        \textbf{ĐẠI HỌC THÁI NGUYÊN}\\
+        \textbf{TRƯỜNG ĐẠI HỌC CÔNG NGHỆ THÔNG TIN VÀ TRUYỀN THÔNG}\\[2.0cm]
+
+        \textbf{\large \MakeUppercase{Nông Thành Luân}}\\[2.0cm]
+
+        {\fontsize{16}{22}\selectfont \textbf{BÁO CÁO ĐỀ TÀI}}\\[0.5cm]
+        {\fontsize{18}{24}\selectfont \textbf{XÂY DỰNG VÀ TRIỂN KHAI HỆ THỐNG ĐẶT LỊCH KHÁM, QUẢN LÝ BỆNH VIỆN VÀ TƯ VẤN Y TẾ THÔNG MINH CARECONNECT TRÊN NỀN TẢNG ĐIỆN TOÁN ĐÁM MÂY}}\\[2.5cm]
+
+        \begin{flushleft}
+            \hspace{2.5cm}\textbf{Ngành:} \textit{[cần bổ sung: Tên ngành học, ví dụ Công nghệ thông tin]}\\
+            \hspace{2.5cm}\textbf{Lớp:} \textit{[cần bổ sung: Mã lớp sinh viên]}\\
+            \hspace{2.5cm}\textbf{Mã sinh viên:} \textit{[cần bổ sung: Mã số sinh viên]}\\
+            \hspace{2.5cm}\textbf{Giảng viên hướng dẫn:} \textit{[cần bổ sung: Học hàm, học vị và họ tên GVHD]}
+        \end{flushleft}
+
+        \vfill
+        \textbf{THÁI NGUYÊN - NĂM 2026}
+    \end{center}
+\end{titlepage}
+
+% --- MỤC LỤC, DANH MỤC BẢNG BIỂU, DANH MỤC HÌNH VẼ & TỪ VIẾT TẮT ---
+\pagenumbering{roman}
+\tableofcontents
+\clearpage
+\listoftables
+\clearpage
+\listoffigures
+\clearpage
+\input{chuong/tu_viet_tat}
+\clearpage
+
+% --- NỘI DUNG CHÍNH BÁO CÁO ---
+\pagenumbering{arabic}
+\input{chuong/phan_mo_dau}
+\clearpage
+\input{chuong/chuong_1}
+\clearpage
+\input{chuong/chuong_2}
+\clearpage
+\input{chuong/chuong_3}
+\clearpage
+\input{chuong/chuong_4}
+\clearpage
+\input{chuong/ket_luan}
+\clearpage
+
+% --- TÀI LIỆU THAM KHẢO (ĐÚNG ĐỊNH DẠNG MỤC 2.5 HUONGDAN.DOC) ---
+\bibliographystyle{plain}
+\input{Tai_lieu_tham_khao/danh_muc_tai_lieu}
+
+\end{document}
